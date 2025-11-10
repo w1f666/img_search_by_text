@@ -1,0 +1,12 @@
+[project]
+name = "ci-new"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.aerich]
+tortoise_orm = "backend.app.db.sql_db.config.settings.TORTOISE_ORM"
+location = "backend/app/db/sql_db/migrations/"
+src_folder = "./."

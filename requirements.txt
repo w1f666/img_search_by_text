@@ -1,0 +1,14 @@
+aertich
+chromadb
+cn-clip
+fastapi
+imagehash
+pillow
+uvicorn
+pytorch
+torchvision
+<<<<<<< HEAD
+tertoise
+=======
+tertoise
+>>>>>>> 00a60d7 (更新项目依赖，阐述项目结构)

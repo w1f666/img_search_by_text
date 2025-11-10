@@ -1,0 +1,19 @@
+import os
+
+DB_FOLDER = "backend/db/sql_db/storage"
+if not os.path.exists(DB_FOLDER):
+    os.makedirs(DB_FOLDER)
+    
+TORTOISE_ORM = {
+    "connections": {
+        "default": "sqlite://" + os.path.join(DB_FOLDER, "db.sqlite3")  # 指定使用 aiosqlite 连接到名为 db.sqlite3 的文件
+    },
+    "apps": {
+        "models": {
+            # generate_schemas=True 表示在启动时自动建表
+            "models": ["db.sql_db.models.image"],
+            "default_connection": "default",
+        }
+    },
+}
+ 
