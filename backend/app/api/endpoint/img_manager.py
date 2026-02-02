@@ -1,15 +1,13 @@
 from pydantic import BaseModel
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from typing import List
-
 from app.core.img_process import image_process
-from app.core.db_handler import add_img_to_database
+from app.core.db_handler.img_handler import add_img_to_database 
 
 img_manage_router = APIRouter()
 
 class AddImageRequest(BaseModel):
-    file_path:list[str]
-
+    file_path: List[str]
 
 #TODO 修改添加逻辑，敲定是使用独立文件夹保存还是只存储文件路径
 @img_manage_router.post("/add")
@@ -52,4 +50,24 @@ async def add_images_api(request: AddImageRequest):
         "message": "Images added successfully",
         "added_images": added_images,
         "duplicate_images": duplicate_images
+    }
+    
+async def delete_image_api(
+    image_id: int = Form(..., description="要删除的图片ID")
+):
+    """
+    删除指定ID的图片记录。
+
+    :param image_id: 要删除的图片ID
+    :return: 删除操作的结果消息
+    """
+    from app.core._db_handler import delete_image_by_id
+
+    success = await delete_image_by_id(image_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    return {
+        "message": f"Image with ID {image_id} deleted successfully"
     }

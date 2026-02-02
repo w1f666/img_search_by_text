@@ -16,7 +16,9 @@ where
 from db.vector_db.client import collection
 from typing import List
 from db.sql_db.models.image import Image
+from db.sql_db.models.gallery import Gallery
 from datetime import datetime
+
 
 THRESHOLD = 0.3
 
@@ -92,3 +94,44 @@ async def search_similar_images(
         })
 
     return similar_images
+
+async def delete_image_by_id(image_id: int) -> bool:
+    """
+    删除指定ID的图片记录及其向量。
+
+    :param image_id: 要删除的图片ID
+    :return: 删除操作是否成功
+    """
+    img_record = await Image.get_or_none(id=image_id)
+    if not img_record:
+        print(f"Image with ID {image_id} not found.")
+        return False
+
+    # 从 SQLite 数据库中进行标记
+    img_record.is_deleted = True
+    await img_record.save()
+    
+    print(f"Image with ID {image_id} has been put into Recycle Bin.")
+    
+    return True
+
+async def restore_image_by_id(image_id: int) -> bool:
+    """
+    恢复指定ID的图片记录。
+
+    :param image_id: 要恢复的图片ID
+    :return: 恢复操作是否成功
+    """
+    img_record = await Image.get_or_none(id=image_id)
+    if not img_record:
+        print(f"Image with ID {image_id} not found.")
+        return False
+
+    # 从 SQLite 数据库中恢复标记
+    img_record.is_deleted = False
+    await img_record.save()
+    
+    print(f"Image with ID {image_id} has been restored from Recycle Bin.")
+    
+    return True
+

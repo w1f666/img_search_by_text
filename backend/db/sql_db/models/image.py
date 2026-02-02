@@ -26,6 +26,11 @@ class Image(Model):
         index=True,
         description="图片感知hash值,用于相似图片检索以及去重",
     )
+    #用于汉明距离计算
+    phash_p1 = fields.CharField(max_length=16, null=True, index=True)
+    phash_p2 = fields.CharField(max_length=16, null=True, index=True)
+    phash_p3 = fields.CharField(max_length=16, null=True, index=True)
+    phash_p4 = fields.CharField(max_length=16, null=True, index=True)
     description = fields.TextField(
         null=True, 
         description="图片描述信息")
@@ -34,7 +39,7 @@ class Image(Model):
         description="图片是否被删除,被删除的不会在检索和相册中出现，只会出现在回收站中",
     )
 
-    # # 多对多关系
+    # 多对多关系
     # gallery = fields.ManyToManyField(
     #     "models.gallery",
     #     related_name="images",
@@ -42,6 +47,5 @@ class Image(Model):
     #     description="图片所属画廊",
     # )
 
-    # If you need to specify metadata, uncomment and configure the Meta class below.
-    # class Meta:
-    #     table = "image"
+    class ImageMeta:
+        table = "image"

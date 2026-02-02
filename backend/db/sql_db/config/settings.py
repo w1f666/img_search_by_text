@@ -12,6 +12,7 @@ TORTOISE_ORM = {
         "models": {
             # generate_schemas=True 表示在启动时自动建表
             "models": ["db.sql_db.models.image"],
+            # "models": ["db.sql_db.models.gallery"],
             "default_connection": "default",
         }
     },
