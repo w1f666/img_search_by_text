@@ -1,10 +1,10 @@
-aertich
+aerich
 chromadb
 cn-clip
 fastapi
 imagehash
 pillow
 uvicorn
-pytorch
+torch
 torchvision
 tortoise-orm
