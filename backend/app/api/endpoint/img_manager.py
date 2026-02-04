@@ -19,7 +19,6 @@ async def add_images_api(request: AddImageRequest):
     :param request: 包含图片文件路径列表的请求体
     :return: 成功添加的图片记录列表和重复图片路径列表
     """
-    
     added_images = []
     duplicate_images = []
 
@@ -34,20 +33,27 @@ async def add_images_api(request: AddImageRequest):
         vector = result['clip_vector']
 
         # 尝试将图片添加到数据库
-        result = await add_img_to_database(
+        db_result = await add_img_to_database(
             img_path=img_path,
             img_hash=img_hash,
             phash=phash,
-            vector=vector
+            vector=vector,
+            strict=True
         )
 
-        if result == "duplicate":
-            duplicate_images.append(img_path)
+        if isinstance(db_result, list):  
+            # 如果返回的是重复图片ID列表
+            duplicate_images.append({
+                "file_path": img_path,
+                "duplicate_ids": db_result
+            })
         else:
-            added_images.append(result)
+            added_images.append(db_result)
 
     return {
-        "message": "Images added successfully",
+        "message": "Images processed",
+        "add_count": len(added_images),
+        "duplicate_count": len(duplicate_images),
         "added_images": added_images,
         "duplicate_images": duplicate_images
     }
@@ -61,7 +67,6 @@ async def delete_image_api(
     :param image_id: 要删除的图片ID
     :return: 删除操作的结果消息
     """
-    from app.core._db_handler import delete_image_by_id
 
     success = await delete_image_by_id(image_id)
 

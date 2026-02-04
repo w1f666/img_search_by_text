@@ -11,45 +11,36 @@ async def add_img_to_database(
     img_hash: str,
     phash: str, 
     vector: List[float],
-    strict: bool = False#如果为TRUE，则在添加前会检查感知哈希以防止重复，CLIP向量相似度检查
-) -> Image | str:
+    strict: bool#如果为TRUE，则在添加前会检查感知哈希以防止重复，CLIP向量相似度检查
+) -> Image | List[int]:
     """
     将图片元数据存入 SQLite，向量存入 ChromaDB。
     在存入前会检查 hash 值以防止重复。
 
-    :return: 成功时返回创建的 ImageMeta 对象，如果图片重复则返回字符串 "duplicate"。
+    :return: 新添加的图片记录，或检测到的重复图片 ID 列表
     """
-    
-    # # 根据 MD5 哈希值查询图片是否已存在
-    # if await Image.filter(file_hash=img_hash).exists():
-    #     print(f"Duplicate detected: Image with hash {img_hash} already exists.")
-    #     return "duplicate"
-    
-    # if strict:
-    #     # 严格模式下，根据感知哈希值查询图片是否已存在
-    #     if await Image.filter(p_hash=phash).exists():
-    #         print(f"Duplicate detected in strict mode: Image with pHash {phash} already exists.")
-    #         return "duplicate"
-    
-    
-    if await duplicate_check(
+    logger.info(f"current process image: {img_path} - Adding image to database...")
+    duplicates_img_ids = await duplicate_check(
         img_hash=img_hash,
         phash=phash,
         vector=vector,
         strict=strict
-    ):
-        return "duplicate"
+    )
     
+    if duplicates_img_ids:
+        return duplicates_img_ids
+    
+    four_parts = split_phash(phash)
     #存入SQLite数据库,切分用于计算汉明距离
     new_img_record = await Image.create(
         file_path=img_path,
         file_hash=img_hash,
         p_hash=phash,
         upload_time=datetime.now(),
-        phash_p1=split_phash(phash)[0],
-        phash_p2=split_phash(phash)[1],
-        phash_p3=split_phash(phash)[2],
-        phash_p4=split_phash(phash)[3],
+        phash_p1=four_parts[0],
+        phash_p2=four_parts[1],
+        phash_p3=four_parts[2],
+        phash_p4=four_parts[3],
     )
     
     # 存入 ChromaDB 向量数据库
