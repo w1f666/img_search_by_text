@@ -1,46 +1,73 @@
-# 前端界面文档
+# React + TypeScript + Vite
 
-这是一个基于 Vue 3 的简单前端界面，用于演示图像搜索和管理功能。
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## 目录结构
+Currently, two official plugins are available:
 
-- `index.html`: 主页面文件，包含 HTML 结构。
-- `app.js`: Vue 3 应用逻辑，处理 API 调用和状态管理。
-- `style.css`: 样式文件。
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## 功能说明
+## React Compiler
 
-### 1. 图像搜索 (Image Search)
+The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
 
-提供两种搜索模式：
+## Expanding the ESLint configuration
 
-- **文本搜索**: 输入描述性文本（例如 "一只猫"），后端将使用 CLIP 模型提取文本特征并在向量数据库中搜索相似图片。
-- **图片搜索**: 上传一张本地图片，后端将提取图片特征并搜索相似图片。
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-**参数**:
-- `Top K`: 设置返回的最相似结果数量。
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-**结果展示**:
-- 显示匹配图片的 ID、相似度距离（越小越相似）和文件路径。
-- **注意**: 由于浏览器安全限制，直接显示本地磁盘路径（如 `D:\photos\img.jpg`）的图片通常会被拦截。如果后端未配置静态文件服务，图片预览可能无法加载，但路径信息仍然可见。
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
 
-### 2. 图像管理 (Image Management)
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
 
-- **批量添加**: 输入本地图片的绝对路径（每行一个），点击“批量添加”将图片信息存入数据库并建立索引。
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-## 使用方法
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-1. 确保后端服务已启动（默认运行在 `http://localhost:8080`）。
-2. 直接在浏览器中打开 `index.html` 文件，或者使用简单的 HTTP 服务器运行前端。
-   - 推荐使用 VS Code 的 "Live Server" 插件。
-   - 或者在 `frontend` 目录下运行 `python -m http.server 3000`，然后访问 `http://localhost:3000`。
-
-## 依赖
-
-- **Vue 3**: 通过 CDN 引入 (ES Module 版本)。
-- **Axios**: 用于发送 HTTP 请求。
-
-## 注意事项
-
-- **跨域问题 (CORS)**: 后端 `main.py` 已配置允许跨域请求，以便前端可以从不同端口或文件系统访问 API。
-- **图片预览**: 目前后端仅返回文件路径。如果需要正常预览图片，建议在后端配置静态文件挂载，将图片目录映射到 URL 路径。
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
