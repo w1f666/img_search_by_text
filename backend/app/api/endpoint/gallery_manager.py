@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
+from pydantic import BaseModel
 from app.core.db_handler.gallery_handler import (
     create_gallery,
     list_galleries,
@@ -8,11 +9,12 @@ from app.core.db_handler.gallery_handler import (
     delete_gallery,
     restore_gallery,
     list_recycle_galleries,
-    hard_delete_all_galleries
+    add_image_to_gallery,
+    batch_add_images_to_gallery,
+    # hard_delete_all_galleries
 )
 
 gallery_router = APIRouter()
-
 
 @gallery_router.post("/create")
 async def create_gallery_api(name: str, description: str | None = None):
@@ -26,7 +28,6 @@ async def create_gallery_api(name: str, description: str | None = None):
         "image_count": gallery.image_count,
         "created_time": gallery.created_time
     }
-
 
 @gallery_router.get("/list")
 async def list_galleries_api():
@@ -46,7 +47,6 @@ async def list_galleries_api():
         ]
     }
 
-
 @gallery_router.get("/{gallery_id}")
 async def get_gallery_detail(gallery_id: int):
     gallery = await get_gallery_by_id(gallery_id)
@@ -63,7 +63,6 @@ async def get_gallery_detail(gallery_id: int):
             "created_time": gallery.created_time
         }
     }
-
 
 @gallery_router.put("/update/{gallery_id}")
 async def update_gallery_api(
@@ -87,7 +86,6 @@ async def update_gallery_api(
         "description": gallery.description
     }
 
-
 @gallery_router.delete("/delete/{gallery_id}")
 async def delete_gallery_api(gallery_id: int):
     if gallery_id == 1:
@@ -105,8 +103,6 @@ async def delete_gallery_api(gallery_id: int):
         "msg": "gallery moved to recycle bin",
         "gallery_id": gallery_id
     }
-
-
 
 @gallery_router.post("/restore/{gallery_id}")
 async def restore_gallery_api(gallery_id: int):
@@ -140,3 +136,31 @@ async def list_recycle_galleries_api():
         ]
     }
 
+
+class AddImageToGalleryRequest(BaseModel):
+    image_id: int | List[int]
+    gallery_id: int
+@gallery_router.post("/gallery")
+async def add_image_to_gallery_api(request: AddImageToGalleryRequest):
+    """
+    将图片添加到画廊。
+
+    :param image_id: 图片 ID
+    :param gallery_id: 画廊 ID
+    :return: 是否添加成功
+    """
+    if isinstance(request.image_id, int):
+        image_ids = [request.image_id]
+    else:
+        image_ids = request.image_id
+
+    success = await batch_add_images_to_gallery(image_ids=image_ids, gallery_id=request.gallery_id)
+
+    if not success:
+        raise HTTPException(status_code=404, detail="Gallery or Image not found")
+
+    return {
+        "msg": f"Image(s) added to gallery {request.gallery_id} successfully",
+        "gallery_id": request.gallery_id,
+        "image_ids": image_ids
+    }

@@ -5,6 +5,7 @@ from datetime import datetime
 from app.logs.config import logger
 from app.core.utils import split_phash
 from app.core.utils import duplicate_check
+
     
 async def add_img_to_database(
     img_path: str, 
@@ -124,6 +125,8 @@ async def delete_image_by_id(image_id: int) -> bool:
     """
     updated_count = await Image.filter(id=image_id).update(is_deleted=True)
     
+    
+    
     if updated_count == 0:
         logger.warning(f"Delete failed: Image ID not found or already deleted: {image_id}")
         return False
@@ -131,6 +134,37 @@ async def delete_image_by_id(image_id: int) -> bool:
     logger.info(f"Image moved to Recycle Bin: ID={image_id}")
     return True
 
+async def delete_images_batch_by_ids(image_ids: List[int]) -> dict :
+    """
+    批量删除图片（软删除），一次性更新数据库。
+    
+    :param image_ids: 要删除的图片ID列表
+    :return: 包含删除结果的字典
+    """
+    if not image_ids:
+        logger.warning("No image IDs provided for batch deletion.")
+        return {"deleted_ids": [], "failed_ids": []}
+    
+    # 查找存在且未删除的图片ID
+    existing_image = await Image.filter(id__in=image_ids, is_deleted=False).all()
+    existing_ids = {img.id for img in existing_image}
+    # 这里是集合不是字典，使用集合方便下边查找不存在的id，速度快些
+    
+    # 找出不存在的ID
+    failed_ids = [img_id for img_id in image_ids if img_id not in existing_ids]
+    
+    if not existing_ids:
+        logger.warning("No valid image IDs found for deletion.")
+        return {"deleted_ids": [], "failed_ids": failed_ids}
+    else:
+        await Image.filter(id__in=list(existing_ids)).update(is_deleted=True)
+        logger.info(f"Batch deleted {len(existing_ids)} images, {len(failed_ids)} failed.")
+
+    return {
+        "deleted_ids": list(existing_ids),
+        "failed_ids": failed_ids
+    }
+    
 async def restore_image_by_id(image_id: int) -> bool:
     """
     通过 ID 恢复图片。

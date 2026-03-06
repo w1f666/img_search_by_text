@@ -17,13 +17,13 @@ class Gallery(Model):
     parent_id = fields.IntField(null=True, description="当前所在相册")
     deleted_parent_id = fields.IntField(null=True, description="删除前的 parent")
     
-    # 多对多关系
-    # image = fields.ManyToManyField(
-    #     "image.image",
-    #     related_name="galleries",
-    #     through="gallery_image",
-    #     description="画廊中的图片",
-    # )
+    #多对多关系
+    image = fields.ManyToManyField(
+        "models.Image",
+        related_name="galleries",
+        through="gallery_image",
+        description="画廊中的图片",
+    )
 
     class GalleryMeta:
         table = "gallery"

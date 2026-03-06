@@ -2,6 +2,9 @@ from db.vector_db.client import collection
 from typing import List
 from db.sql_db.models.gallery import Gallery
 from datetime import datetime
+from app.logs.config import logger
+from db.sql_db.models.image import Image
+
 RECYCLE_GALLERY_ID = 1
 
 async def create_gallery(
@@ -25,10 +28,8 @@ async def create_gallery(
         is_deleted=False,
         parent_id=None  # None顶层相册
     )
-    print(f"Gallery '{name}' created with ID {new_gallery.id}.")
+    logger.info(f"Gallery created successfully: ID={new_gallery.id}, Name={name}")
     return new_gallery
-
-
 
 async def list_galleries() -> List[Gallery]:
     """
@@ -43,7 +44,6 @@ async def list_galleries() -> List[Gallery]:
     )
     return galleries
 
-
 async def get_gallery_by_id(gallery_id: int) -> Gallery | None:
     """
     根据画廊 ID 获取画廊对象。
@@ -53,7 +53,6 @@ async def get_gallery_by_id(gallery_id: int) -> Gallery | None:
     """
     gallery = await Gallery.get_or_none(id=gallery_id)
     return gallery
-
 
 async def update_gallery(
     gallery_id: int,
@@ -80,7 +79,6 @@ async def update_gallery(
     await gallery.save()
     return gallery
 
-
 async def delete_gallery(gallery_id: int) -> bool:
     """
     软删除画廊，将其放入回收站。
@@ -106,7 +104,6 @@ async def delete_gallery(gallery_id: int) -> bool:
     await gallery.save()
     return True
 
-
 async def restore_gallery(gallery_id: int) -> bool:
     """
     从回收站恢复画廊。
@@ -122,6 +119,7 @@ async def restore_gallery(gallery_id: int) -> bool:
     if not gallery:
         return False
 
+    #这个报错不用理
     gallery.parent_id = gallery.deleted_parent_id
     gallery.deleted_parent_id = None
     gallery.is_deleted = False
@@ -160,3 +158,61 @@ async def list_recycle_galleries() -> List[Gallery]:
         is_deleted=True
     ).exclude(id=RECYCLE_GALLERY_ID)
     return galleries
+
+async def add_image_to_gallery(image_id: int, gallery_id: int) -> bool:
+    """
+    将图片添加到画廊。
+
+    :param image_id: 图片 ID
+    :param gallery_id: 画廊 ID
+    :return: 是否添加成功
+    """
+    gallery = await Gallery.get_or_none(id=gallery_id, is_deleted=False)
+    if not gallery:
+        logger.warning(f"Add image failed: Gallery not found or deleted: ID={gallery_id}")
+        return False
+    
+    image = await Image.get_or_none(id=image_id, is_deleted=False)
+    if not image:
+        logger.warning(f"Add image failed: Image not found or deleted: ID={image_id}")
+        return False
+
+    await gallery.image.add(image)
+    logger.info(f"Image ID {image_id} added to Gallery ID {gallery_id} successfully.")
+
+    gallery.image_count += 1
+    await gallery.save(update_fields=["image_count"])
+    logger.info(f"Gallery ID {gallery_id} image count updated to {gallery.image_count}.")
+    
+    return True
+
+async def batch_add_images_to_gallery(image_ids: List[int], gallery_id: int) -> dict:
+    """
+    批量将图片添加到画廊。
+
+    :param image_ids: 图片 ID 列表
+    :param gallery_id: 画廊 ID
+    :return: 包含添加结果的字典
+    """
+    gallery = await Gallery.get_or_none(id=gallery_id, is_deleted=False)
+    if not gallery:
+        logger.warning(f"Batch add images failed: Gallery not found or deleted: ID={gallery_id}")
+        return {"success": False, "message": "Gallery not found or deleted", "added_count": 0}
+
+    added_count = 0
+    for image_id in image_ids:
+        image = await Image.get_or_none(id=image_id, is_deleted=False)
+        if not image:
+            logger.warning(f"Batch add images failed: Image not found or deleted: ID={image_id}")
+            continue
+
+        await gallery.image.add(image)
+        added_count += 1
+        logger.info(f"Image ID {image_id} added to Gallery ID {gallery_id} successfully.")
+
+    if added_count > 0:
+        gallery.image_count += added_count
+        await gallery.save(update_fields=["image_count"])
+        logger.info(f"Gallery ID {gallery_id} image count updated to {gallery.image_count}.")
+
+    return {"success": True, "message": f"{added_count} images added to gallery", "added_count": added_count}

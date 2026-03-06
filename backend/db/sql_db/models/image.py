@@ -39,13 +39,5 @@ class Image(Model):
         description="图片是否被删除,被删除的不会在检索和相册中出现，只会出现在回收站中",
     )
 
-    # 多对多关系
-    # gallery = fields.ManyToManyField(
-    #     "models.gallery",
-    #     related_name="images",
-    #     through="gallery_image",
-    #     description="图片所属画廊",
-    # )
-
     class ImageMeta:
         table = "image"
