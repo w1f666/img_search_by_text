@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(img_manage_router,prefix="/management", tags=["Image Management"])
+app.include_router(img_manage_router,prefix="", tags=["Image Management"])
 app.include_router(img_search_router,prefix="/search", tags=["Image Search"])
 app.include_router(gallery_router, prefix="/gallery", tags=["Gallery"])
 

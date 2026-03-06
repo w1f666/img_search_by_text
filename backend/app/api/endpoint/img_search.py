@@ -32,7 +32,7 @@ async def text_search_images_api(
 
 @img_search_router.post("/search_by_image")
 async def search_by_image_api(
-    uploaded_file: UploadFile = File(..., description="上传的图片文件"),
+    uploaded_file: str = Query(..., description="上传的图片文件"),
     top_k: int = Query(5, description="返回的最大结果数")
 ):
     """
@@ -42,7 +42,7 @@ async def search_by_image_api(
     :return: 相关图片记录列表
     """
     clip = CLIPHandler()
-    embedding = clip.image_extract(uploaded_file.file)
+    embedding = clip.image_extract(uploaded_file)
 
     if not embedding:
         return {
