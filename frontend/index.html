@@ -4,6 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>frontend</title>
+    <!-- inline theme init: make sure the correct class and background are applied before React mounts -->
+    <script>
+      (function () {
+        const storageKey = 'vite-ui-theme';
+        const defaultTheme = 'system';
+        let theme = localStorage.getItem(storageKey) || defaultTheme;
+        if (theme === 'system') {
+          const mql = window.matchMedia('(prefers-color-scheme: dark)');
+          theme = mql.matches ? 'dark' : 'light';
+        }
+        // apply class for tailwind selectors
+        document.documentElement.classList.add(theme);
+        // set an explicit background color to prevent initial white flash
+        const bg = theme === 'dark' ? 'oklch(63.343% 0.00007 271.152)' : 'oklch(86.148% 0.00108 12.173)';
+        document.documentElement.style.backgroundColor = bg;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
