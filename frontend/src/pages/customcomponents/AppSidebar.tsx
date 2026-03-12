@@ -38,15 +38,14 @@ export default function AppSidebar() {
   }
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="!p-0 mt-2 gap-y-4">
+      <SidebarHeader className="!p-0 mt-2">
         <div className="flex items-center justify-between pt-2">
           <Sidebaricon 
           onClick={mytoggleSidebar} 
           label={state==="collapsed"? "展开侧边栏": "收起侧边栏"}
           icon={Menu} 
         />
-          {/* always render the history button; visibility controlled via CSS so we can fade */}
-          <Sidebaricon 
+          <Sidebaricon
             onClick={Searchhistory} 
             label={"搜索历史"}
             icon={Search} 
@@ -58,8 +57,8 @@ export default function AppSidebar() {
           />
         </div>
         <div className="flex items-center justify-start pt-2">
-          <Sidebaricon 
-          onClick={NewSearch} 
+          <Sidebaricon
+          onClick={NewSearch}
           label="新的搜索"
           icon={Plus}
           hideTooltip={state === "expanded"}
@@ -74,8 +73,6 @@ export default function AppSidebar() {
               发起新的搜索
             </span>
         </div>
-      </SidebarHeader>
-      <SidebarContent>
         <div className="flex items-center justify-start">
           <Sidebaricon 
           onClick={() => nagigate('/gallery')} 
@@ -93,6 +90,8 @@ export default function AppSidebar() {
               图库
             </span>
         </div>
+      </SidebarHeader>
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel
           className="test-md">搜索历史</SidebarGroupLabel>
