@@ -7,6 +7,7 @@ import {
   useSidebar,
   SidebarGroupLabel
 } from "@/components/ui/sidebar"
+import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Menu, Plus, Images, Settings } from "lucide-react"
 import Sidebarhistory from "./ui/Sidebarhistory";
 import Sidebaricon from "./ui/Sidebariconbutton"
@@ -23,7 +24,7 @@ export default function AppSidebar() {
   }
   function mytoggleSidebar(){
     toggleSidebar();
-    setloading(true);
+    state === "collapsed" && setloading(true);
     renderhistory();
   }
   function NewSearch() {
@@ -97,11 +98,20 @@ export default function AppSidebar() {
           className="test-md">搜索历史</SidebarGroupLabel>
           <div className="flex flex-col items-start justify-center gap-1 py-2 px-4 ">
           
+            {loading? 
+            <div className="flex w-full max-w-xs flex-col gap-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+            :
+            <>
             <Sidebarhistory label="搜索历史1搜索历史1搜索历史1搜索历史1" onClick={openHistory} state={state}/>
             <Sidebarhistory label="搜索历史1搜索历史1" onClick={openHistory} state={state}/>
             <Sidebarhistory label="搜索历史1" onClick={openHistory} state={state}/>
             <Sidebarhistory label="搜索历史1" onClick={openHistory} state={state}/>
             <Sidebarhistory label="搜索历史1" onClick={openHistory} state={state}/>
+            </>}
           </div>
         </SidebarGroup>
       </SidebarContent>
