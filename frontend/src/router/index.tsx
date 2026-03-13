@@ -1,6 +1,9 @@
 import { createBrowserRouter, type UIMatch } from "react-router-dom";
 import MainLayout from "@/Layout/MainLayout";
-import Searchbar from "@/pages/customcomponents/Searchbar";
+import Searchbar from "@/pages//Search/Searchbar";
+import Gallery from "@/pages/gallery/Gallery";
+import GalleryImage from "@/pages/galleryimage/GalleryImage";
+
 const router = createBrowserRouter([
     {
         path: "/",
@@ -21,7 +24,7 @@ const router = createBrowserRouter([
                 children:[
                     {
                     index: true,
-                    element: <div>Gallery</div>,
+                    element: <Gallery/>,
             },
                     {
                 path:":galleryname",
@@ -31,7 +34,7 @@ const router = createBrowserRouter([
                 children:[
                     {
                         index: true,
-                        element: <div>GalleryDetail</div>,
+                        element: <GalleryImage/>,
                     },
                     {
                         path: ":imageid",

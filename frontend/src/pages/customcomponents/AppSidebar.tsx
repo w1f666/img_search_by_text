@@ -116,7 +116,7 @@ export default function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center justify-start pb-2">
+        <div className="flex items-center justify-start pb-2 -translate-x-2">
           <Sidebaricon 
           onClick={NewSearch} 
           label="设置"
