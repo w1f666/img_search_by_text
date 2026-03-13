@@ -3,6 +3,8 @@ import MainLayout from "@/Layout/MainLayout";
 import Searchbar from "@/pages//Search/Searchbar";
 import Gallery from "@/pages/gallery/Gallery";
 import GalleryImage from "@/pages/galleryimage/GalleryImage";
+import Trash from "@/pages/Trash/Trash";
+import AllImages from "@/pages/allImages/AllImages";
 
 const router = createBrowserRouter([
     {
@@ -17,9 +19,30 @@ const router = createBrowserRouter([
                 element: <Searchbar/>,
             },
             {
-                path: "gallery",
+                path: "Trash",
+                element: <Trash/>,
                 handle: {
-                    breadcrumb: () => "Gallery"
+                    breadcrumb: () => "回收站"
+                },
+            },
+            {
+                path: "History",
+                element: <History/>,
+                handle: {
+                    breadcrumb: () => "历史"
+                },
+            },
+            {
+                path: "allImages",
+                element: <AllImages/>,
+                handle: {
+                    breadcrumb: () => "所有图片"
+                }
+            },
+            {
+                path: "Gallery",
+                handle: {
+                    breadcrumb: () => "图集"
                 },
                 children:[
                     {

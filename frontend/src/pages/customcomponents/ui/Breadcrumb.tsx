@@ -50,7 +50,7 @@ export default function CustomBreadcrumbs() {
                                 : <BreadcrumbLink className="text-lg" asChild>
                                         <Link to={crumb.path}>{crumb.name}</Link>
                                     </BreadcrumbLink>}
-                                {!islast && crumb.name === "Gallery" && 
+                                {!islast && crumb.name === "图集" && 
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <button className="flex items-center gap-1">

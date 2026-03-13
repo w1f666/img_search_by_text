@@ -17,11 +17,13 @@ import { useState } from "react";
 import { useTopbarNameStore } from "@/store/useTopbarNameStore";
 
 export default function Topbar(){
-    const {isSearched, SetisSearched, Keywords, SetKeywords, Deletechat} = useTopbarNameStore();
+    const {isSearched, SetisSearched, Keywords, SetKeywords} = useTopbarNameStore();
     const GithubURL = "https://github.com/quark-sp/image-search-and-duplicate-by-CLIP";
     const {theme, setTheme, resolvedTheme} = useTheme();
     const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark");
-    
+    function Deletechat(){
+        console.log("")
+    }
     return(
         <div className="relative h-14 bg-background flex items-center justify-between px-4 z-10 pt-4">
             <nav aria-label="Breadcrumb">

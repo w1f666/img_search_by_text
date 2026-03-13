@@ -1,18 +1,20 @@
 import { Button } from "@/components/ui/button";
 import { useEffect } from "react";
-import { Group } from "lucide-react";
+import { Group, FolderPlus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import GallerySkeletonCard from "../customcomponents/ui/galleryskeleton";
 import { GalleryCard } from "../customcomponents/ui/gallerycard";
 import { useGalleryStore } from "@/store/useGalleryStore";
 
 export default function Gallery() {
-  const { galleryList, loading, setGalleryList, setLoading } =
-    useGalleryStore();
+  const { galleryList, loading, setGalleryList, setLoading } = useGalleryStore();
 
   function SortGallery() {
     setLoading(true);
     setTimeout(() => setLoading(false), 1000);
+  }
+  function AddGallery() {
+    console.log("")
   }
 
   useEffect(() => {
@@ -42,11 +44,16 @@ export default function Gallery() {
         <span className="ml-2 text-md tracking-wide">
           共整理出{galleryList.length}个相册
         </span>
-
-        <Button variant="outline" size="sm" onClick={SortGallery}>
-          <Group />
-          一键分类
-        </Button>
+        <div className="flex gap-2 items-center">
+          <Button variant="outline" size="sm" onClick={SortGallery}>
+            <Group />
+            一键分类
+          </Button>
+          <Button variant="outline" size="sm" onClick={AddGallery}>
+            <FolderPlus />
+            添加图集
+          </Button>
+        </div>
       </div>
 
       {/* 固定一行 4 列的网格布局 */}

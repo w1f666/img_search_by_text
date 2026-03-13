@@ -26,7 +26,7 @@ export default function Sidebaricon({onClick, label, icon:Icon, className, hideT
           <TooltipTrigger asChild>
             <button
               onClick={onClick}
-              className={`flex items-center justify-center w-(--sidebar-width-icon) h-10 shrink-0 p-2 ${className ?? ""}`}
+              className={`flex items-center justify-center w-(--sidebar-width-icon) h-10 shrink-0  ${className ?? ""}`}
             >
               <div className="size-8 flex items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
                 <Icon className="size-[18px]" />

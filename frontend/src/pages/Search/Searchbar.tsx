@@ -20,7 +20,7 @@ import { useRef, useState } from "react";
 export default function Searchbar() {
     type modeltype = "pro" | "fast" | "balanced";
     type Searchmodetype = "search by text" | "search by img"
-    const {isSearched, SetisSearched, Keywords, SetKeywords, Deletechat} = useTopbarNameStore();
+    const {isSearched, SetisSearched, Keywords, SetKeywords} = useTopbarNameStore();
     const [searchmode,setsearchmode] = useState<Searchmodetype>("search by text");
     const [model, setmodel] = useState<modeltype>("fast");
     const [inputValue, setInputValue] = useState("");
