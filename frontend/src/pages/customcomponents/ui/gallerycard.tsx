@@ -6,7 +6,8 @@ export function GalleryCard({
   CreatedTime,
   imageUrl,
   count,
-}: GalleryItem) {
+  actionSlot,
+}: GalleryItem & { actionSlot?: React.ReactNode }) {
   const navigate = useNavigate();
 
   return (
@@ -43,6 +44,14 @@ export function GalleryCard({
         )}
         {/* 底部渐变遮罩 */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+        {actionSlot ? (
+          <div
+            className="absolute right-3 top-3 z-10 flex gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            onClick={(event) => event.stopPropagation()}
+          >
+            {actionSlot}
+          </div>
+        ) : null}
       </div>
     </div>
   );

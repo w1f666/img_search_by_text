@@ -6,18 +6,14 @@ import { Moon, Sun, EllipsisVertical, } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes";
-import { useState } from "react";
 import { useTopbarNameStore } from "@/store/useTopbarNameStore";
 
 export default function Topbar(){
-    const {isSearched, SetisSearched, Keywords, SetKeywords} = useTopbarNameStore();
+        const {isSearched, Keywords, SetKeywords} = useTopbarNameStore();
     const GithubURL = "https://github.com/quark-sp/image-search-and-duplicate-by-CLIP";
     const {theme, setTheme, resolvedTheme} = useTheme();
     const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark");

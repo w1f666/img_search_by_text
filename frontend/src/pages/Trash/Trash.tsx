@@ -1,38 +1,71 @@
-import { ImageCard, type ImageItem } from "../customcomponents/ui/imagecard";
+import { useEffect } from "react";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, Trash2 } from "lucide-react";
+import { useGalleryStore } from "@/store/useGalleryStore";
+import { ImageCard } from "../customcomponents/ui/imagecard";
 
 export default function Trash() {
-  const mockImages: ImageItem[] = [
-    { id: "5", url: "public/gallery/landscapes/IMG_8203.JPG", filename: "deleted1.jpg", createdAt: "2023-10-25", size: "2.1 MB" },
-    { id: "6", url: "public/gallery/landscapes/IMG_8200.JPG", filename: "deleted2.jpg", createdAt: "2023-10-26", size: "1.8 MB" }
-  ];
+  const {
+    trashImages,
+    initLibrary,
+    restoreImage,
+    permanentlyDeleteImage,
+    clearTrash,
+  } = useGalleryStore();
+
+  useEffect(() => {
+    void initLibrary();
+  }, [initLibrary]);
+
+  const handleClearTrash = async () => {
+    if (!trashImages.length) {
+      return;
+    }
+
+    if (!window.confirm("确认一键清空回收站吗？该操作会永久删除所有回收站图片。")) {
+      return;
+    }
+
+    await clearTrash();
+  };
 
   return (
     <div className="flex flex-col gap-6 px-4 py-8">
-      <PageHeader title="回收站" description="The items will be deleted permanently after 30 days." />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <PageHeader title="回收站" description="支持恢复、永久删除，以及一键清空。" />
+          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+            <span className="rounded-full bg-muted px-3 py-1">待处理 {trashImages.length} 张</span>
+          </div>
+        </div>
+        <Button variant="destructive" onClick={() => void handleClearTrash()} disabled={trashImages.length === 0}>
+          <Trash2 className="mr-2 h-4 w-4" />
+          一键清空
+        </Button>
+      </div>
+
       <ImageGrid>
-        {mockImages.map((img) => (
+        {trashImages.map((img) => (
           <ImageCard 
             key={img.id} 
             image={img} 
             actionMask={
               <div className="flex gap-2">
-                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" onClick={(e) => { e.stopPropagation(); console.log('restore', img.id) }}>
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" onClick={(e) => { e.stopPropagation(); void restoreImage(img.id); }}>
                   <RefreshCcw className="h-4 w-4" />
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-red-500/80 text-white hover:bg-red-500" onClick={(e) => { e.stopPropagation(); console.log('permanent delete', img.id) }}>
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-red-500/80 text-white hover:bg-red-500" onClick={(e) => { e.stopPropagation(); void permanentlyDeleteImage(img.id); }}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             }
           />
         ))}
-        {mockImages.length === 0 && (
+        {trashImages.length === 0 && (
           <div className="col-span-full py-12 text-center text-muted-foreground">
-            No items in Trash.
+            回收站当前是空的。
           </div>
         )}
         </ImageGrid>

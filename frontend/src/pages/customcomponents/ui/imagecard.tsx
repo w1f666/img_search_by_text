@@ -1,14 +1,6 @@
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Maximize2 } from "lucide-react";
-
-export interface ImageItem {
-  id: string;
-  url: string;
-  filename: string;
-  createdAt: string;
-  size: string;
-}
+import type { ImageItem } from "@/types/media";
 
 interface ImageCardProps {
   image: ImageItem;
@@ -17,13 +9,9 @@ interface ImageCardProps {
 }
 
 export function ImageCard({ image, onClick, actionMask }: ImageCardProps) {
-  const navigate = useNavigate();
-
   const handleCardClick = () => {
     if (onClick) {
       onClick();
-    } else {
-      navigate(image.id);
     }
   };
 

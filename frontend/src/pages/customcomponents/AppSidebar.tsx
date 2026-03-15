@@ -11,10 +11,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Menu, Plus, Images, Image, Trash } from "lucide-react"
 import Sidebarhistory from "./ui/Sidebarhistory";
 import Sidebaricon from "./ui/Sidebariconbutton"
-import { useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
-import MyModal from "./ui/MyModal";
+import { useGalleryStore } from "@/store/useGalleryStore";
 
 interface SidebarNavItemProps {
   onClick: () => void;
@@ -43,21 +43,21 @@ function SidebarNavItem({ onClick, label, icon, state, className }: SidebarNavIt
 }
 
 export default function AppSidebar() {
-  const [loading, setloading] = useState(false);
   const { toggleSidebar, state } = useSidebar();
-  const [ishistorysearching, setishistorysearching] = useState(false);
   const navigate = useNavigate();
+  const { historyRecords, loading, initLibrary } = useGalleryStore();
 
-  function renderhistory() { setTimeout(() => setloading(false), 1000); }
+  useEffect(() => {
+    void initLibrary();
+  }, [initLibrary]);
+
   function mytoggleSidebar() {
     toggleSidebar();
-    state === "collapsed" && setloading(true);
-    renderhistory();
   }
-  function NewSearch() { console.log("New Search Triggered!"); }
-  function Searchhistory() { setishistorysearching(true); console.log("history searched!"); }
-  function openHistory() { console.log("openhistory"); }
-  function openTrash() { navigate("/Trash"); }
+  function NewSearch() { navigate("/"); }
+  function Searchhistory() { navigate("/history"); }
+  function openHistory(historyId: string) { navigate(`/history?selected=${historyId}`); }
+  function openTrash() { navigate("/trash"); }
 
   return (
     <Sidebar collapsible="icon">
@@ -81,7 +81,7 @@ export default function AppSidebar() {
         </div>
         <SidebarNavItem onClick={NewSearch} label="发起新的搜索" icon={Plus} state={state} className="pt-2" />
         <SidebarNavItem onClick={() => navigate('/gallery')} label="图库" icon={Images} state={state} />
-        <SidebarNavItem onClick={() => navigate('/allImages')} label="所有照片" icon={Image} state={state} />
+        <SidebarNavItem onClick={() => navigate('/all-images')} label="所有照片" icon={Image} state={state} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
@@ -95,11 +95,14 @@ export default function AppSidebar() {
               </div>
             ) : (
               <>
-                <Sidebarhistory label="搜索历史1搜索历史1搜索历史1搜索历史1" onClick={openHistory} state={state} />
-                <Sidebarhistory label="搜索历史1搜索历史1" onClick={openHistory} state={state} />
-                <Sidebarhistory label="搜索历史1" onClick={openHistory} state={state} />
-                <Sidebarhistory label="搜索历史1" onClick={openHistory} state={state} />
-                <Sidebarhistory label="搜索历史1" onClick={openHistory} state={state} />
+                {historyRecords.slice(0, 5).map((record) => (
+                  <Sidebarhistory
+                    key={record.id}
+                    label={record.title}
+                    onClick={() => openHistory(record.id)}
+                    state={state}
+                  />
+                ))}
               </>
             )}
           </div>
