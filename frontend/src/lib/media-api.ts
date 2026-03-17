@@ -12,6 +12,22 @@ import type {
 
 const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const tokenise = (text: string) =>
+  text
+    .toLowerCase()
+    .split(/[\s,.;:!?，。！？、]+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+
+const hashString = (value: string) => {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(index);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -27,6 +43,66 @@ const getHistoryTitleFromTurns = (turns: [string | ImageItem, ImageItem][]) => {
   }
 
   return getTurnQueryLabel(firstTurn[0]);
+};
+
+interface SearchBestMatchPayload {
+  textQuery?: string;
+  contextualQuery?: string;
+  referenceImageFile?: File;
+  searchSessionId?: string;
+  topK?: number;
+  imageWeight?: number;
+  textWeight?: number;
+}
+
+interface SearchBestMatchResponse {
+  bestMatch: ImageItem | null;
+  searchSessionId: string | null;
+}
+
+const runLocalBestMatch = ({
+  textQuery,
+  contextualQuery,
+  referenceImageFile,
+}: SearchBestMatchPayload): ImageItem | null => {
+  const semanticText = [contextualQuery, textQuery].filter(Boolean).join(" ");
+  const semanticTokens = tokenise(semanticText);
+  const fileStem = referenceImageFile?.name.split(".")[0]?.toLowerCase() ?? "";
+
+  const activeImages = database.images.filter((image) => image.status === "active");
+  if (activeImages.length === 0) {
+    return null;
+  }
+
+  const ranked = [...activeImages].sort((left, right) => {
+    const score = (image: ImageItem) => {
+      const base = (hashString(`${image.id}-${semanticText}`) % 100) / 100;
+      const searchable = [image.filename, image.createdAt, image.size].join(" ").toLowerCase();
+
+      let overlap = 0;
+      semanticTokens.forEach((token) => {
+        if (searchable.includes(token)) {
+          overlap += 1.2;
+        }
+      });
+
+      let imageBoost = 0;
+      if (fileStem) {
+        if (searchable.includes(fileStem.slice(0, 8))) {
+          imageBoost += 2.2;
+        }
+        if (searchable.includes(fileStem.slice(-6))) {
+          imageBoost += 0.8;
+        }
+      }
+
+      return base + overlap + imageBoost;
+    };
+
+    return score(right) - score(left);
+  });
+
+  return ranked[0] ?? null;
 };
 
 const seedGalleries: GalleryRecord[] = [
@@ -235,6 +311,68 @@ const filterImages = ({
 };
 
 export const mediaApi = {
+  async searchBestMatch(payload: SearchBestMatchPayload): Promise<SearchBestMatchResponse> {
+    const endpointBase = import.meta.env.VITE_BACKEND_URL;
+
+    if (endpointBase) {
+      try {
+        const isFirstTurn = !payload.searchSessionId;
+        const endpoint = isFirstTurn
+          ? "/search/sessions"
+          : `/search/sessions/${payload.searchSessionId}/turns`;
+
+        const formData = new FormData();
+        if (payload.textQuery?.trim()) {
+          formData.append("text_query", payload.textQuery.trim());
+        }
+        if (payload.referenceImageFile) {
+          formData.append("reference_image", payload.referenceImageFile);
+        }
+        formData.append("top_k", String(payload.topK ?? 24));
+        formData.append("image_weight", String(payload.imageWeight ?? 0.7));
+        formData.append("text_weight", String(payload.textWeight ?? 0.3));
+
+        const response = await fetch(`${endpointBase}${endpoint}`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const body = await response.json();
+          const firstItem = body?.data?.turn?.items?.[0];
+          const nextSessionId = body?.data?.session?.session_id ?? payload.searchSessionId ?? null;
+
+          if (firstItem) {
+            const imageById = database.images.find(
+              (image) => String(image.id) === String(firstItem.image_id)
+            );
+            const imageByUrl = database.images.find(
+              (image) => image.url === firstItem.thumbnail_url
+            );
+
+            return {
+              bestMatch: imageById ?? imageByUrl ?? runLocalBestMatch(payload),
+              searchSessionId: nextSessionId,
+            };
+          }
+
+          return {
+            bestMatch: runLocalBestMatch(payload),
+            searchSessionId: nextSessionId,
+          };
+        }
+      } catch {
+        // Fall through to local mock result to keep UI usable before backend is ready.
+      }
+    }
+
+    await wait();
+    return {
+      bestMatch: runLocalBestMatch(payload),
+      searchSessionId: payload.searchSessionId ?? null,
+    };
+  },
+
   async listGalleries() {
     await wait();
     return buildGalleryList();
