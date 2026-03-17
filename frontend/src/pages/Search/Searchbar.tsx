@@ -167,7 +167,7 @@ export default function Searchbar() {
     };
 
     return (
-        <div className="relative min-h-full overflow-hidden bg-[radial-gradient(circle_at_10%_20%,#e4f0ff_0%,#f8fbff_35%,#f6f2eb_100%)] px-4 py-6 sm:px-6 lg:px-10">
+        <div className="relative min-h-full bg-[radial-gradient(circle_at_10%_20%,#e4f0ff_0%,#f8fbff_35%,#f6f2eb_100%)] px-4 py-6 sm:px-6 lg:px-10">
             <div className="pointer-events-none absolute left-8 top-8 h-56 w-56 rounded-full bg-cyan-200/35 blur-3xl" />
             <div className="pointer-events-none absolute bottom-0 right-0 h-64 w-64 rounded-full bg-amber-200/25 blur-3xl" />
 
@@ -281,7 +281,7 @@ export default function Searchbar() {
                 <section className="sticky bottom-4 z-20">
                     <div className="rounded-3xl border border-slate-200/80 bg-white/95 p-3 shadow-[0_26px_65px_-45px_rgba(15,23,42,.8)] backdrop-blur">
                         <div className="mb-3 grid gap-2 md:grid-cols-[minmax(0,1fr)_220px]">
-                            <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 px-3 py-2 text-xs text-slate-600">
+                            <div className="rounded-2xl border border-slate-200/70 bg-slate-50/80 px-3 py-3 text-xs text-slate-600">
                                 当前检索模式：
                                 <span className="ml-1 font-medium text-slate-800">
                                     {modeOptions.find((option) => option.value === searchMode)?.label}
