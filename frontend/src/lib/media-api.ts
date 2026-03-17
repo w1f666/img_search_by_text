@@ -17,6 +17,18 @@ const createId = (prefix: string) =>
 
 const nowDate = () => new Date().toISOString().slice(0, 10);
 
+const getTurnQueryLabel = (query: string | ImageItem) =>
+  typeof query === "string" ? query : "图片搜索";
+
+const getHistoryTitleFromTurns = (turns: [string | ImageItem, ImageItem][]) => {
+  const firstTurn = turns[0];
+  if (!firstTurn) {
+    return "新搜索";
+  }
+
+  return getTurnQueryLabel(firstTurn[0]);
+};
+
 const seedGalleries: GalleryRecord[] = [
   {
     id: "gallery-landscape",
@@ -136,48 +148,27 @@ const seedImages: ImageItem[] = [
 const seedHistory: HistoryRecord[] = [
   {
     id: "history-01",
-    title: "查找与海边夕阳相似的照片",
-    query: "海边夕阳 橙红天空 倒影",
-    summary: "最近一次视觉搜索，命中 18 张相似风景照片。",
+    title: "海边夕阳 橙红天空",
+    turns: [
+      ["海边夕阳 橙红天空", seedImages[0]],
+      ["加入倒影和广角构图", seedImages[1]],
+    ],
     createdAt: "2026-03-13T09:20:00",
-    resultCount: 18,
-    category: "相似图搜索",
   },
   {
     id: "history-02",
-    title: "近 7 天重复图片检测",
-    query: "最近七天 重复图片",
-    summary: "扫描新增图片后，检测出 4 组重复候选。",
+    title: "图片搜索",
+    turns: [
+      [seedImages[2], seedImages[2]],
+      ["只看色调接近蓝绿色", seedImages[5]],
+    ],
     createdAt: "2026-03-13T08:15:00",
-    resultCount: 4,
-    category: "重复检测",
   },
   {
     id: "history-03",
-    title: "人物侧脸照片集合",
-    query: "人物 侧脸 室内 暖光",
-    summary: "文本检索结果聚焦在人像相册中的暖色调照片。",
+    title: "人物 侧脸 室内 暖光",
+    turns: [["人物 侧脸 室内 暖光", seedImages[3]]],
     createdAt: "2026-03-12T21:04:00",
-    resultCount: 11,
-    category: "自然语言",
-  },
-  {
-    id: "history-04",
-    title: "旅行相册封面筛选",
-    query: "适合做相册封面的横图",
-    summary: "为风景相册挑选宽画幅的候选封面图。",
-    createdAt: "2026-03-10T18:40:00",
-    resultCount: 7,
-    category: "自然语言",
-  },
-  {
-    id: "history-05",
-    title: "查找高饱和度参考图",
-    query: "高饱和 色块强烈 风景",
-    summary: "用于灵感板整理，筛出颜色冲击力较强的图片。",
-    createdAt: "2026-03-08T14:22:00",
-    resultCount: 9,
-    category: "相似图搜索",
   },
 ];
 
@@ -377,11 +368,64 @@ export const mediaApi = {
 
     return sortByNewest(
       database.history.filter((record) =>
-        [record.title, record.query, record.summary, record.category]
+        [
+          record.title,
+          ...record.turns.map((turn) => {
+            const [query, result] = turn;
+            return [
+              getTurnQueryLabel(query),
+              result.filename,
+              result.createdAt,
+              result.size,
+            ].join(" ");
+          }),
+        ]
           .join(" ")
           .toLowerCase()
           .includes(normalizedKeyword)
       )
     );
+  },
+
+  async createHistory(turn: [string | ImageItem, ImageItem]) {
+    await wait();
+
+    const turns: [string | ImageItem, ImageItem][] = [turn];
+    const record: HistoryRecord = {
+      id: createId("history"),
+      title: getHistoryTitleFromTurns(turns),
+      turns,
+      createdAt: new Date().toISOString(),
+    };
+
+    database.history.unshift(record);
+    return record;
+  },
+
+  async appendHistoryTurn(historyId: string, turn: [string | ImageItem, ImageItem]) {
+    await wait();
+    let updatedRecord: HistoryRecord | undefined;
+
+    database.history = database.history.map((record) => {
+      if (record.id !== historyId) {
+        return record;
+      }
+
+      const nextTurns: [string | ImageItem, ImageItem][] = [...record.turns, turn];
+      updatedRecord = {
+        ...record,
+        turns: nextTurns,
+        title: getHistoryTitleFromTurns(nextTurns),
+        createdAt: new Date().toISOString(),
+      };
+
+      return updatedRecord;
+    });
+
+    if (!updatedRecord) {
+      return this.createHistory(turn);
+    }
+
+    return updatedRecord;
   },
 };

@@ -14,10 +14,14 @@ interface GalleryState {
   activeImages: ImageItem[];
   trashImages: ImageItem[];
   historyRecords: HistoryRecord[];
-  loading: boolean;
   initialized: boolean;
+  isInitializing: boolean;
+  isCreatingGallery: boolean;
+  isAddingImage: boolean;
+  isClearingTrash: boolean;
+  pendingImageIds: string[];
+  pendingGalleryIds: string[];
   setGalleryList: (list: GalleryItem[]) => void;
-  setLoading: (value: boolean) => void;
   initLibrary: () => Promise<void>;
   refreshLibrary: () => Promise<void>;
   createGallery: (payload: CreateGalleryPayload) => Promise<void>;
@@ -30,6 +34,11 @@ interface GalleryState {
   restoreImage: (imageId: string) => Promise<void>;
   permanentlyDeleteImage: (imageId: string) => Promise<void>;
   clearTrash: () => Promise<void>;
+  createHistoryRecord: (turn: [string | ImageItem, ImageItem]) => Promise<HistoryRecord>;
+  appendHistoryTurn: (
+    historyId: string,
+    turn: [string | ImageItem, ImageItem]
+  ) => Promise<HistoryRecord>;
 }
 
 const hydrateLibrary = async () => {
@@ -45,87 +54,212 @@ const hydrateLibrary = async () => {
 
 export { type GalleryItem } from "@/types/media";
 
+const addPendingId = (ids: string[], id: string) =>
+  ids.includes(id) ? ids : [...ids, id];
+
+const removePendingId = (ids: string[], id: string) => 
+  ids.filter((entry) => entry !== id);
+
+const addPendingIds = (ids: string[], nextIds: string[]) => {
+  const uniqueIds = new Set(ids);
+
+  nextIds.forEach((id) => {
+    uniqueIds.add(id);
+  });
+
+  return [...uniqueIds];
+};
+
+const removePendingIds = (ids: string[], targetIds: string[]) => {
+  const targetSet = new Set(targetIds);
+  return ids.filter((id) => !targetSet.has(id));
+};
+
 export const useGalleryStore = create<GalleryState>((set, get) => ({
   galleryList: [],
   activeImages: [],
   trashImages: [],
   historyRecords: [],
-  loading: true,
   initialized: false,
+  isInitializing: false,
+  isCreatingGallery: false,
+  isAddingImage: false,
+  isClearingTrash: false,
+  pendingImageIds: [],
+  pendingGalleryIds: [],
   setGalleryList: (list) => set({ galleryList: list }),
-  setLoading: (value) => set({ loading: value }),
   initLibrary: async () => {
-    if (get().initialized) {
+    if (get().initialized || get().isInitializing) {
       return;
     }
 
-    set({ loading: true });
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set({ isInitializing: true });
+
+    try {
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set({ isInitializing: false });
+    }
   },
   refreshLibrary: async () => {
-    set({ loading: true });
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set({ isInitializing: true });
+
+    try {
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set({ isInitializing: false });
+    }
   },
   createGallery: async (payload) => {
-    set({ loading: true });
-    await mediaApi.createGallery(payload);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set({ isCreatingGallery: true });
+
+    try {
+      await mediaApi.createGallery(payload);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set({ isCreatingGallery: false });
+    }
   },
   updateGallery: async (id, payload) => {
-    set({ loading: true });
-    await mediaApi.updateGallery(id, payload);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set((state) => ({
+      pendingGalleryIds: addPendingId(state.pendingGalleryIds, id),
+    }));
+
+    try {
+      await mediaApi.updateGallery(id, payload);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set((state) => ({
+        pendingGalleryIds: removePendingId(state.pendingGalleryIds, id),
+      }));
+    }
   },
   deleteGallery: async (id) => {
-    set({ loading: true });
-    await mediaApi.deleteGallery(id);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set((state) => ({
+      pendingGalleryIds: addPendingId(state.pendingGalleryIds, id),
+    }));
+
+    try {
+      await mediaApi.deleteGallery(id);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set((state) => ({
+        pendingGalleryIds: removePendingId(state.pendingGalleryIds, id),
+      }));
+    }
   },
   addImage: async (payload) => {
-    set({ loading: true });
-    await mediaApi.createImage(payload);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set({ isAddingImage: true });
+
+    try {
+      await mediaApi.createImage(payload);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set({ isAddingImage: false });
+    }
   },
   updateImageGallery: async (imageId, galleryId) => {
-    set({ loading: true });
-    await mediaApi.updateImage(imageId, { galleryId });
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set((state) => ({
+      pendingImageIds: addPendingId(state.pendingImageIds, imageId),
+    }));
+
+    try {
+      await mediaApi.updateImage(imageId, { galleryId });
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set((state) => ({
+        pendingImageIds: removePendingId(state.pendingImageIds, imageId),
+      }));
+    }
   },
   moveImageToTrash: async (imageId) => {
-    set({ loading: true });
-    await mediaApi.moveImageToTrash(imageId);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set((state) => ({
+      pendingImageIds: addPendingId(state.pendingImageIds, imageId),
+    }));
+
+    try {
+      await mediaApi.moveImageToTrash(imageId);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set((state) => ({
+        pendingImageIds: removePendingId(state.pendingImageIds, imageId),
+      }));
+    }
   },
   moveImagesToTrash: async (imageIds) => {
-    set({ loading: true });
-    await mediaApi.moveImagesToTrash(imageIds);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set((state) => ({
+      pendingImageIds: addPendingIds(state.pendingImageIds, imageIds),
+    }));
+
+    try {
+      await mediaApi.moveImagesToTrash(imageIds);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set((state) => ({
+        pendingImageIds: removePendingIds(state.pendingImageIds, imageIds),
+      }));
+    }
   },
   restoreImage: async (imageId) => {
-    set({ loading: true });
-    await mediaApi.restoreImage(imageId);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set((state) => ({
+      pendingImageIds: addPendingId(state.pendingImageIds, imageId),
+    }));
+
+    try {
+      await mediaApi.restoreImage(imageId);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set((state) => ({
+        pendingImageIds: removePendingId(state.pendingImageIds, imageId),
+      }));
+    }
   },
   permanentlyDeleteImage: async (imageId) => {
-    set({ loading: true });
-    await mediaApi.permanentlyDeleteImage(imageId);
-    const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set((state) => ({
+      pendingImageIds: addPendingId(state.pendingImageIds, imageId),
+    }));
+
+    try {
+      await mediaApi.permanentlyDeleteImage(imageId);
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set((state) => ({
+        pendingImageIds: removePendingId(state.pendingImageIds, imageId),
+      }));
+    }
   },
   clearTrash: async () => {
-    set({ loading: true });
-    await mediaApi.clearTrash();
+    set({ isClearingTrash: true });
+
+    try {
+      await mediaApi.clearTrash();
+      const data = await hydrateLibrary();
+      set({ ...data, initialized: true });
+    } finally {
+      set({ isClearingTrash: false });
+    }
+  },
+  createHistoryRecord: async (turn) => {
+    const created = await mediaApi.createHistory(turn);
     const data = await hydrateLibrary();
-    set({ ...data, loading: false, initialized: true });
+    set({ ...data, initialized: true });
+    return created;
+  },
+  appendHistoryTurn: async (historyId, turn) => {
+    const record = await mediaApi.appendHistoryTurn(historyId, turn);
+    const data = await hydrateLibrary();
+    set({ ...data, initialized: true });
+    return record;
   },
 }));

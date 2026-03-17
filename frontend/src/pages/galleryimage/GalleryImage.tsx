@@ -10,23 +10,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ImageMinus, ImagePlus, Search, Trash2 } from "lucide-react";
+import { ImageMinus, ImagePlus, LoaderCircle, Trash2 } from "lucide-react";
 import { useGalleryStore } from "@/store/useGalleryStore";
 import type { CreateImagePayload } from "@/types/media";
 import { ImageCard } from "../customcomponents/ui/imagecard";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
+import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
 
 export default function GalleryImage() {
   const { galleryname } = useParams<{ galleryname: string }>();
-  const {
-    galleryList,
-    activeImages,
-    loading,
-    initLibrary,
-    addImage,
-    updateImageGallery,
-    moveImageToTrash,
-  } = useGalleryStore();
+  const galleryList = useGalleryStore((state) => state.galleryList);
+  const activeImages = useGalleryStore((state) => state.activeImages);
+  const initialized = useGalleryStore((state) => state.initialized);
+  const isInitializing = useGalleryStore((state) => state.isInitializing);
+  const isAddingImage = useGalleryStore((state) => state.isAddingImage);
+  const pendingImageIds = useGalleryStore((state) => state.pendingImageIds);
+  const initLibrary = useGalleryStore((state) => state.initLibrary);
+  const addImage = useGalleryStore((state) => state.addImage);
+  const updateImageGallery = useGalleryStore((state) => state.updateImageGallery);
+  const moveImageToTrash = useGalleryStore((state) => state.moveImageToTrash);
   const [query, setQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<CreateImagePayload>({
@@ -97,7 +99,7 @@ export default function GalleryImage() {
     });
   };
 
-  if (!loading && !gallery) {
+  if (initialized && !isInitializing && !gallery) {
     return (
       <div className="flex flex-col gap-4 px-4 py-8">
         <PageHeader title={galleryname ?? "相册不存在"} description="当前相册不存在，可能已被删除或重命名。" />
@@ -130,15 +132,11 @@ export default function GalleryImage() {
         </div>
       </div>
 
-      <label className="relative block rounded-3xl border bg-card/70 p-4 shadow-sm backdrop-blur">
-        <Search className="pointer-events-none absolute left-7 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="在当前相册中搜索图片"
-          className="pl-9"
-        />
-      </label>
+      <SearchToolbar
+        value={query}
+        onChange={setQuery}
+        placeholder="在当前相册中搜索图片"
+      />
 
       {images.length > 0 ? (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
@@ -146,29 +144,40 @@ export default function GalleryImage() {
             <ImageCard
               key={image.id}
               image={image}
+              busy={pendingImageIds.includes(image.id)}
               actionMask={
                 <div className="flex gap-2">
                   <Button
                     size="icon-sm"
                     variant="secondary"
                     className="rounded-full bg-background/80"
+                    disabled={pendingImageIds.includes(image.id)}
                     onClick={(event) => {
                       event.stopPropagation();
                       void updateImageGallery(image.id, null);
                     }}
                   >
-                    <ImageMinus className="size-4" />
+                    {pendingImageIds.includes(image.id) ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <ImageMinus className="size-4" />
+                    )}
                   </Button>
                   <Button
                     size="icon-sm"
                     variant="destructive"
                     className="rounded-full"
+                    disabled={pendingImageIds.includes(image.id)}
                     onClick={(event) => {
                       event.stopPropagation();
                       void moveImageToTrash(image.id);
                     }}
                   >
-                    <Trash2 className="size-4" />
+                    {pendingImageIds.includes(image.id) ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
                   </Button>
                 </div>
               }
@@ -231,7 +240,10 @@ export default function GalleryImage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={() => void handleCreateImage()}>保存</Button>
+            <Button disabled={isAddingImage} onClick={() => void handleCreateImage()}>
+              {isAddingImage ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              保存
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

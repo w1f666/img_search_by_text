@@ -26,7 +26,7 @@ interface RouteHandle{
 
 export default function CustomBreadcrumbs() {
     const matches = useMatches() as UIMatch<unknown,RouteHandle>[];
-    const { galleryList } = useGalleryStore();
+    const galleryList = useGalleryStore((state) => state.galleryList);
     const navigate = useNavigate();
     const crumbs = matches
     .filter((match) => Boolean(match.handle?.breadcrumb))

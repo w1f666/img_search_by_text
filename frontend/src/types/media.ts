@@ -27,11 +27,8 @@ export interface ImageItem {
 export interface HistoryRecord {
   id: string;
   title: string;
-  query: string;
-  summary: string;
+  turns: [string | ImageItem,ImageItem][],
   createdAt: string;
-  resultCount: number;
-  category: "自然语言" | "相似图搜索" | "重复检测";
 }
 
 export interface CreateGalleryPayload {

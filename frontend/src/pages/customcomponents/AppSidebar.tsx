@@ -45,7 +45,10 @@ function SidebarNavItem({ onClick, label, icon, state, className }: SidebarNavIt
 export default function AppSidebar() {
   const { toggleSidebar, state } = useSidebar();
   const navigate = useNavigate();
-  const { historyRecords, loading, initLibrary } = useGalleryStore();
+  const historyRecords = useGalleryStore((store) => store.historyRecords);
+  const initialized = useGalleryStore((store) => store.initialized);
+  const isInitializing = useGalleryStore((store) => store.isInitializing);
+  const initLibrary = useGalleryStore((store) => store.initLibrary);
 
   useEffect(() => {
     void initLibrary();
@@ -56,7 +59,7 @@ export default function AppSidebar() {
   }
   function NewSearch() { navigate("/"); }
   function Searchhistory() { navigate("/history"); }
-  function openHistory(historyId: string) { navigate(`/history?selected=${historyId}`); }
+  function openHistory(historyId: string) { navigate(`/?history=${historyId}`); }
   function openTrash() { navigate("/trash"); }
 
   return (
@@ -87,7 +90,7 @@ export default function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="test-md">搜索历史</SidebarGroupLabel>
           <div className="flex flex-col items-start justify-center gap-1 py-2 px-4">
-            {loading ? (
+            {isInitializing && !initialized ? (
               <div className="flex w-full max-w-xs flex-col gap-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-full" />

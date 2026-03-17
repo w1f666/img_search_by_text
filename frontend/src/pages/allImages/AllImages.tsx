@@ -1,6 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -9,21 +8,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ImagePlus, Search, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ImagePlus, LoaderCircle, Trash2 } from "lucide-react";
 import { useGalleryStore } from "@/store/useGalleryStore";
 import type { CreateImagePayload, ImageItem } from "@/types/media";
 import { ImageCard } from "../customcomponents/ui/imagecard";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
+import { FancySelect } from "../customcomponents/ui/FancySelect";
+import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
 
 export default function AllImages() {
-  const {
-    activeImages,
-    galleryList,
-    initLibrary,
-    addImage,
-    moveImageToTrash,
-  } = useGalleryStore();
+  const activeImages = useGalleryStore((state) => state.activeImages);
+  const galleryList = useGalleryStore((state) => state.galleryList);
+  const isAddingImage = useGalleryStore((state) => state.isAddingImage);
+  const pendingImageIds = useGalleryStore((state) => state.pendingImageIds);
+  const initLibrary = useGalleryStore((state) => state.initLibrary);
+  const addImage = useGalleryStore((state) => state.addImage);
+  const moveImageToTrash = useGalleryStore((state) => state.moveImageToTrash);
   const [query, setQuery] = useState("");
   const [galleryFilter, setGalleryFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -97,6 +99,16 @@ export default function AllImages() {
     await moveImageToTrash(imageId);
   };
 
+  const galleryFilterOptions = [
+    { value: "all", label: "全部相册", hint: `包含 ${galleryList.length} 个相册` },
+    { value: "ungrouped", label: "仅未归类", hint: `${ungroupedCount} 张待分组` },
+    ...galleryList.map((gallery) => ({
+      value: gallery.id,
+      label: gallery.Galleryname,
+      hint: `${gallery.count} 张图片`,
+    })),
+  ];
+
   return (
     <div className="flex flex-col gap-6 px-4 py-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -114,30 +126,18 @@ export default function AllImages() {
         </Button>
       </div>
 
-      <div className="grid gap-3 rounded-3xl border bg-card/70 p-4 shadow-sm backdrop-blur md:grid-cols-[minmax(0,1fr)_220px]">
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="按文件名搜索图片"
-            className="pl-9"
+      <SearchToolbar
+        value={query}
+        onChange={setQuery}
+        placeholder="按文件名搜索图片"
+        rightSlot={
+          <FancySelect
+            value={galleryFilter}
+            onValueChange={setGalleryFilter}
+            options={galleryFilterOptions}
           />
-        </label>
-        <select
-          value={galleryFilter}
-          onChange={(event) => setGalleryFilter(event.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <option value="all">全部相册</option>
-          <option value="ungrouped">仅未归类</option>
-          {galleryList.map((gallery) => (
-            <option key={gallery.id} value={gallery.id}>
-              {gallery.Galleryname}
-            </option>
-          ))}
-        </select>
-      </div>
+        }
+      />
 
       {filteredImages.length > 0 ? (
         <ImageGrid>
@@ -145,17 +145,23 @@ export default function AllImages() {
             <div key={image.id} className="space-y-2">
               <ImageCard
                 image={image}
+                busy={pendingImageIds.includes(image.id)}
                 actionMask={
                   <Button
                     size="icon-sm"
                     variant="destructive"
                     className="rounded-full"
+                    disabled={pendingImageIds.includes(image.id)}
                     onClick={(event) => {
                       event.stopPropagation();
                       void handleDelete(image.id);
                     }}
                   >
-                    <Trash2 className="size-4" />
+                    {pendingImageIds.includes(image.id) ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
                   </Button>
                 }
               />
@@ -238,7 +244,10 @@ export default function AllImages() {
             <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
               取消
             </Button>
-            <Button onClick={() => void handleCreateImage()}>保存</Button>
+            <Button disabled={isAddingImage} onClick={() => void handleCreateImage()}>
+              {isAddingImage ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              保存
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

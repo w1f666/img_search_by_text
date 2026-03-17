@@ -2,18 +2,18 @@ import { useEffect } from "react";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, Trash2 } from "lucide-react";
+import { LoaderCircle, RefreshCcw, Trash2 } from "lucide-react";
 import { useGalleryStore } from "@/store/useGalleryStore";
 import { ImageCard } from "../customcomponents/ui/imagecard";
 
 export default function Trash() {
-  const {
-    trashImages,
-    initLibrary,
-    restoreImage,
-    permanentlyDeleteImage,
-    clearTrash,
-  } = useGalleryStore();
+  const trashImages = useGalleryStore((state) => state.trashImages);
+  const isClearingTrash = useGalleryStore((state) => state.isClearingTrash);
+  const pendingImageIds = useGalleryStore((state) => state.pendingImageIds);
+  const initLibrary = useGalleryStore((state) => state.initLibrary);
+  const restoreImage = useGalleryStore((state) => state.restoreImage);
+  const permanentlyDeleteImage = useGalleryStore((state) => state.permanentlyDeleteImage);
+  const clearTrash = useGalleryStore((state) => state.clearTrash);
 
   useEffect(() => {
     void initLibrary();
@@ -40,8 +40,12 @@ export default function Trash() {
             <span className="rounded-full bg-muted px-3 py-1">待处理 {trashImages.length} 张</span>
           </div>
         </div>
-        <Button variant="destructive" onClick={() => void handleClearTrash()} disabled={trashImages.length === 0}>
-          <Trash2 className="mr-2 h-4 w-4" />
+        <Button variant="destructive" onClick={() => void handleClearTrash()} disabled={trashImages.length === 0 || isClearingTrash}>
+          {isClearingTrash ? (
+            <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Trash2 className="mr-2 h-4 w-4" />
+          )}
           一键清空
         </Button>
       </div>
@@ -50,14 +54,15 @@ export default function Trash() {
         {trashImages.map((img) => (
           <ImageCard 
             key={img.id} 
-            image={img} 
+            image={img}
+            busy={pendingImageIds.includes(img.id)}
             actionMask={
               <div className="flex gap-2">
-                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" onClick={(e) => { e.stopPropagation(); void restoreImage(img.id); }}>
-                  <RefreshCcw className="h-4 w-4" />
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" disabled={pendingImageIds.includes(img.id)} onClick={(e) => { e.stopPropagation(); void restoreImage(img.id); }}>
+                  {pendingImageIds.includes(img.id) ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
                 </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-red-500/80 text-white hover:bg-red-500" onClick={(e) => { e.stopPropagation(); void permanentlyDeleteImage(img.id); }}>
-                  <Trash2 className="h-4 w-4" />
+                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-red-500/80 text-white hover:bg-red-500" disabled={pendingImageIds.includes(img.id)} onClick={(e) => { e.stopPropagation(); void permanentlyDeleteImage(img.id); }}>
+                  {pendingImageIds.includes(img.id) ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </Button>
               </div>
             }

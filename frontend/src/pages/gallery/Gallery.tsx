@@ -1,6 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -9,20 +8,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FolderPen, FolderPlus, Search, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { FolderPen, FolderPlus, LoaderCircle, Trash2 } from "lucide-react";
 import { GalleryCard } from "../customcomponents/ui/gallerycard";
 import { useGalleryStore } from "@/store/useGalleryStore";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
+import { FancySelect } from "../customcomponents/ui/FancySelect";
+import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
 
 export default function Gallery() {
-  const {
-    galleryList,
-    loading,
-    initLibrary,
-    createGallery,
-    updateGallery,
-    deleteGallery,
-  } = useGalleryStore();
+  const galleryList = useGalleryStore((state) => state.galleryList);
+  const initialized = useGalleryStore((state) => state.initialized);
+  const isInitializing = useGalleryStore((state) => state.isInitializing);
+  const isCreatingGallery = useGalleryStore((state) => state.isCreatingGallery);
+  const pendingGalleryIds = useGalleryStore((state) => state.pendingGalleryIds);
+  const initLibrary = useGalleryStore((state) => state.initLibrary);
+  const createGallery = useGalleryStore((state) => state.createGallery);
+  const updateGallery = useGalleryStore((state) => state.updateGallery);
+  const deleteGallery = useGalleryStore((state) => state.deleteGallery);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<"time" | "name" | "count">("time");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -102,6 +105,15 @@ export default function Gallery() {
     await deleteGallery(galleryId);
   };
 
+  const isEditingPending = editingId ? pendingGalleryIds.includes(editingId) : false;
+  const isSubmitting = isCreatingGallery || isEditingPending;
+
+  const sortOptions = [
+    { value: "time", label: "按创建时间", hint: "最新创建优先" },
+    { value: "name", label: "按名称", hint: "按拼音顺序" },
+    { value: "count", label: "按图片数量", hint: "从多到少排序" },
+  ];
+
   return (
     <div className="flex flex-col gap-6 px-4 py-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -118,28 +130,20 @@ export default function Gallery() {
         </Button>
       </div>
 
-      <div className="grid gap-3 rounded-3xl border bg-card/70 p-4 shadow-sm backdrop-blur md:grid-cols-[minmax(0,1fr)_180px] md:items-center">
-        <label className="relative block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索相册名或描述"
-            className="pl-9"
+      <SearchToolbar
+        value={query}
+        onChange={setQuery}
+        placeholder="搜索相册名或描述"
+        rightSlot={
+          <FancySelect
+            value={sortMode}
+            onValueChange={(value) => setSortMode(value as "time" | "name" | "count")}
+            options={sortOptions}
           />
-        </label>
-        <select
-          value={sortMode}
-          onChange={(event) => setSortMode(event.target.value as "time" | "name" | "count")}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          <option value="time">按创建时间</option>
-          <option value="name">按名称</option>
-          <option value="count">按图片数量</option>
-        </select>
-      </div>
+        }
+      />
 
-      {loading && galleryList.length === 0 ? (
+      {isInitializing && !initialized ? (
         <div className="rounded-3xl border border-dashed bg-muted/30 px-6 py-16 text-center text-sm text-muted-foreground">
           正在加载相册数据...
         </div>
@@ -149,23 +153,34 @@ export default function Gallery() {
             <GalleryCard
               key={item.id}
               {...item}
+              busy={pendingGalleryIds.includes(item.id)}
               actionSlot={
                 <>
                   <Button
                     size="icon-sm"
                     variant="secondary"
                     className="rounded-full bg-background/80"
+                    disabled={pendingGalleryIds.includes(item.id)}
                     onClick={() => openEditDialog(item.id)}
                   >
-                    <FolderPen className="size-4" />
+                    {pendingGalleryIds.includes(item.id) ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <FolderPen className="size-4" />
+                    )}
                   </Button>
                   <Button
                     size="icon-sm"
                     variant="destructive"
                     className="rounded-full"
+                    disabled={pendingGalleryIds.includes(item.id)}
                     onClick={() => void handleDelete(item.id, item.Galleryname)}
                   >
-                    <Trash2 className="size-4" />
+                    {pendingGalleryIds.includes(item.id) ? (
+                      <LoaderCircle className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
                   </Button>
                 </>
               }
@@ -213,7 +228,10 @@ export default function Gallery() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={() => void handleSubmit()}>{editingId ? "保存修改" : "创建相册"}</Button>
+            <Button disabled={isSubmitting} onClick={() => void handleSubmit()}>
+              {isSubmitting ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              {editingId ? "保存修改" : "创建相册"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

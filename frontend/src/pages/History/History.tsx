@@ -1,12 +1,16 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Sparkles, TimerReset } from "lucide-react";
+import { ImagePlus, Search, Sparkles, TimerReset } from "lucide-react";
 import { useGalleryStore } from "@/store/useGalleryStore";
 import type { HistoryRecord } from "@/types/media";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
+
+function getTurnLabel(query: HistoryRecord["turns"][number][0]) {
+	return typeof query === "string" ? query : "图片搜索";
+}
 
 function getSectionLabel(createdAt: string) {
 	const createdDate = new Date(createdAt);
@@ -44,7 +48,9 @@ function formatTime(createdAt: string) {
 }
 
 export default function History() {
-	const { historyRecords, initLibrary } = useGalleryStore();
+	const historyRecords = useGalleryStore((state) => state.historyRecords);
+	const initLibrary = useGalleryStore((state) => state.initLibrary);
+	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [query, setQuery] = useState(searchParams.get("query") ?? "");
 	const deferredQuery = useDeferredValue(query);
@@ -61,7 +67,13 @@ export default function History() {
 		}
 
 		return historyRecords.filter((record) =>
-			[record.title, record.query, record.summary, record.category]
+			[
+				record.title,
+				...record.turns.map((turn) => {
+					const [queryValue, image] = turn;
+					return [getTurnLabel(queryValue), image.filename].join(" ");
+				}),
+			]
 				.join(" ")
 				.toLowerCase()
 				.includes(normalizedQuery)
@@ -97,6 +109,10 @@ export default function History() {
 		setSearchParams(nextParams, { replace: true });
 	};
 
+	const openSearchSession = (recordId: string) => {
+		navigate(`/?history=${recordId}`);
+	};
+
 	return (
 		<div className="flex flex-col gap-6 px-4 py-8">
 			<div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -114,7 +130,7 @@ export default function History() {
 				<Input
 					value={query}
 					onChange={(event) => handleSearchChange(event.target.value)}
-					placeholder="搜索历史记录、关键词或结果类型"
+					placeholder="搜索历史记录、turn 内容或命中图片"
 					className="pl-9"
 				/>
 			</div>
@@ -145,14 +161,18 @@ export default function History() {
 											>
 												<div className="space-y-1">
 													<div className="flex items-center gap-2">
-														<span className="text-sm font-semibold">{record.title}</span>
-														<span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-															{record.category}
+														<span className="text-sm font-semibold">
+															{record.title}
 														</span>
 													</div>
-													<p className="text-sm text-muted-foreground">{record.query}</p>
+													<p className="text-sm text-muted-foreground">
+														{record.turns.length > 0 ? getTurnLabel(record.turns[0][0]) : "空会话"}
+													</p>
 												</div>
-												<span className="shrink-0 text-xs text-muted-foreground">{formatTime(record.createdAt)}</span>
+												<div className="shrink-0 text-right">
+													<div className="text-xs text-muted-foreground">{formatTime(record.createdAt)}</div>
+													<div className="mt-1 text-xs text-muted-foreground">{record.turns.length} turns</div>
+												</div>
 											</button>
 										);
 									})}
@@ -178,24 +198,48 @@ export default function History() {
 							<>
 								<div className="space-y-2">
 									<h3 className="text-base font-semibold">{selectedRecord.title}</h3>
-									<p className="text-sm text-muted-foreground">{selectedRecord.summary}</p>
+									<p className="text-sm text-muted-foreground">首轮查询: {selectedRecord.turns.length > 0 ? getTurnLabel(selectedRecord.turns[0][0]) : "空"}</p>
 								</div>
 								<div className="grid gap-3 text-sm">
 									<div className="rounded-2xl bg-muted/60 p-3">
-										<div className="text-xs text-muted-foreground">搜索关键词</div>
-										<div className="mt-1 font-medium">{selectedRecord.query}</div>
+										<div className="text-xs text-muted-foreground">会话轮次</div>
+										<div className="mt-1 font-medium">{selectedRecord.turns.length} turns</div>
 									</div>
 									<div className="rounded-2xl bg-muted/60 p-3">
-										<div className="text-xs text-muted-foreground">结果规模</div>
-										<div className="mt-1 font-medium">{selectedRecord.resultCount} 条候选结果</div>
+										<div className="text-xs text-muted-foreground">第一轮查询类型</div>
+										<div className="mt-1 font-medium">
+											{selectedRecord.turns.length > 0 && typeof selectedRecord.turns[0][0] !== "string" ? (
+												<span className="inline-flex items-center gap-1">
+													<ImagePlus className="size-3.5" /> 图片搜索
+												</span>
+											) : (
+												"文字搜索"
+											)}
+										</div>
 									</div>
 									<div className="rounded-2xl bg-muted/60 p-3">
 										<div className="text-xs text-muted-foreground">执行时间</div>
 										<div className="mt-1 font-medium">{formatTime(selectedRecord.createdAt)}</div>
 									</div>
 								</div>
-								<Button variant="outline" className="w-full" onClick={() => handleSearchChange(selectedRecord.query)}>
-									用这组关键词重新筛选
+
+								<div className="space-y-2">
+									<div className="text-xs font-medium text-muted-foreground">Turn 明细</div>
+									<div className="max-h-64 space-y-2 overflow-auto pr-1">
+										{selectedRecord.turns.map((turn, index) => {
+											const [turnQuery, resultImage] = turn;
+											return (
+												<div key={`${selectedRecord.id}-${index}`} className="rounded-xl border bg-muted/30 p-2 text-xs">
+													<div>Turn {index + 1}: {getTurnLabel(turnQuery)}</div>
+													<div className="mt-1 text-muted-foreground">命中图: {resultImage.filename}</div>
+												</div>
+											);
+										})}
+									</div>
+								</div>
+
+								<Button variant="outline" className="w-full" onClick={() => openSearchSession(selectedRecord.id)}>
+									打开这个历史会话
 								</Button>
 							</>
 						) : (
