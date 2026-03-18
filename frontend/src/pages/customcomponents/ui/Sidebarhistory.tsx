@@ -25,7 +25,7 @@ export default function Sidebarhistory({onClick, label, className, state}: Sideb
           <TooltipTrigger asChild>
             <button
               onClick={onClick}
-              className={`cursor-pointer rounded-md px-2 py-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${className ?? ""}`}
+              className={`cursor-pointer rounded-md px-2 py-1 text-sidebar-foreground/74 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground dark:hover:bg-[color-mix(in_srgb,var(--sidebar-accent)_88%,white_12%)] dark:hover:text-white ${className ?? ""}`}
             >
               <div className="flex items-center w-48">
               <span className={`whitespace-nowrap overflow-hidden truncate text-sm
