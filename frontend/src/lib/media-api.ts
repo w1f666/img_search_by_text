@@ -23,6 +23,7 @@ import type {
 const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEFAULT_PAGE_SIZE = 12;
+const detailContextCache = new Map<string, ImageDetailContext | null>();
 
 const tokenise = (text: string) =>
   text
@@ -42,6 +43,13 @@ const hashString = (value: string) => {
 
 const createId = (prefix: string) =>
   `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const buildDetailContextCacheKey = (imageId: string, galleryId?: string) =>
+  `${galleryId ?? "all"}::${imageId}`;
+
+const clearDetailContextCache = () => {
+  detailContextCache.clear();
+};
 
 const nowIso = () => new Date().toISOString();
 
@@ -68,7 +76,19 @@ const parseSizeLabel = (value: string) => {
 };
 
 const getQueryLabel = (query: SearchQuery) =>
-  query.type === "text" ? query.text : "图片搜索";
+  query.type === "text" ? query.textQuery : "图片搜索";
+
+const getQueryContextText = (query: SearchQuery) => {
+  if (query.type === "text") {
+    return query.textQuery;
+  }
+
+  if (query.type === "mixed") {
+    return query.textQuery;
+  }
+
+  return "";
+};
 
 const toImageItem = (image: BackendImage): ImageItem => ({
   id: image.id,
@@ -97,24 +117,7 @@ const toGalleryItem = (gallery: BackendGallery): GalleryItem => ({
 const toHistoryRecord = (record: BackendHistoryRecord): HistoryRecord => ({
   id: record.session_id,
   title: record.title,
-  turns: record.turns.map((turn) => {
-    const query: string | ImageItem = turn.query.type === "text"
-      ? turn.query.text
-      : {
-          id: `query-${record.session_id}`,
-          url: turn.query.previewUrl ?? turn.matched_image.thumbnail_url ?? turn.matched_image.image_url,
-          thumbnailUrl: turn.query.previewUrl ?? turn.matched_image.thumbnail_url ?? undefined,
-          filename: turn.query.filename,
-          createdAt: toDateOnly(record.created_at),
-          sizeLabel: "0 MB",
-          sizeBytes: 0,
-          galleryId: null,
-          status: "active",
-          source: "upload",
-        };
-
-    return [query, toImageItem(turn.matched_image)];
-  }),
+  turns: record.turns.map((turn) => [turn.query, toImageItem(turn.matched_image)]),
   createdAt: record.created_at,
   updatedAt: record.updated_at,
 });
@@ -163,23 +166,116 @@ const paginateItems = <T>(items: T[], start: number, end: number): PaginatedResu
   };
 };
 
-const createSearchQuery = (query: string | ImageItem): SearchQuery => {
-  if (typeof query === "string") {
+const createSearchQuery = ({
+  type,
+  textQuery,
+  imageUrl,
+  referencePreviewImage,
+}: Pick<SearchBestMatchPayload, "type" | "textQuery" | "imageUrl" | "referencePreviewImage">): SearchQuery | null => {
+  const normalizedText = textQuery?.trim() ?? "";
+  const normalizedImageUrl = imageUrl?.trim() || referencePreviewImage?.url || "";
+
+  if (type === "mixed" && normalizedText && normalizedImageUrl) {
     return {
-      type: "text",
-      text: query,
+      type: "mixed",
+      textQuery: normalizedText,
+      imageUrl: normalizedImageUrl,
     };
   }
 
-  return {
-    type: "image",
-    filename: query.filename,
-    previewUrl: query.url,
-  };
+  if (type === "text" && normalizedText) {
+    return {
+      type: "text",
+      textQuery: normalizedText,
+    };
+  }
+
+  if (type === "image" && normalizedImageUrl) {
+    return {
+      type: "image",
+      imageUrl: normalizedImageUrl,
+    };
+  }
+
+  return null;
 };
 
 const getHistoryTitle = (query: SearchQuery) =>
-  query.type === "text" ? query.text : "图片搜索";
+  query.type === "text" ? query.textQuery : "图片搜索";
+
+const getHistoryContext = (sessionId?: string) => {
+  if (!sessionId) {
+    return "";
+  }
+
+  const record = database.histories.find((entry) => entry.session_id === sessionId);
+  if (!record) {
+    return "";
+  }
+
+  return record.turns
+    .map((turn) => getQueryContextText(turn.query))
+    .filter(Boolean)
+    .join(" ");
+};
+
+const renameHistoryRecord = (sessionId: string, title: string) => {
+  const nextTitle = title.trim();
+  if (!nextTitle) {
+    return;
+  }
+
+  const now = nowIso();
+  database.histories = database.histories.map((record) =>
+    record.session_id === sessionId
+      ? {
+          ...record,
+          title: nextTitle,
+          updated_at: now,
+        }
+      : record
+  );
+};
+
+const buildImageDetailContext = (imageId: string, galleryId?: string): ImageDetailContext | null => {
+  const image = database.images.find((entry) => entry.id === imageId);
+
+  if (!image) {
+    return null;
+  }
+
+  const collection = getFilteredImages({
+    status: "active",
+    galleryId: galleryId ?? undefined,
+    sortBy: "created_at",
+    sortOrder: "desc",
+  });
+  const currentIndex = collection.findIndex((entry) => entry.id === imageId);
+  const previousImage = currentIndex > 0 ? collection[currentIndex - 1] : null;
+  const nextImage = currentIndex >= 0 && currentIndex < collection.length - 1
+    ? collection[currentIndex + 1]
+    : null;
+  const relatedSource = image.gallery_id
+    ? getFilteredImages({ status: "active", galleryId: image.gallery_id })
+    : getFilteredImages({ status: "active" });
+
+  return {
+    image: toImageItem(image),
+    previousImage: previousImage ? toImageItem(previousImage) : null,
+    nextImage: nextImage ? toImageItem(nextImage) : null,
+    relatedImages: relatedSource
+      .filter((entry) => entry.id !== image.id)
+      .slice(0, 4)
+      .map(toImageItem),
+  };
+};
+
+const getCachedDetailContext = (imageId: string, galleryId?: string) =>
+  detailContextCache.get(buildDetailContextCacheKey(imageId, galleryId));
+
+const cacheDetailContext = (imageId: string, galleryId: string | undefined, context: ImageDetailContext | null) => {
+  detailContextCache.set(buildDetailContextCacheKey(imageId, galleryId), context);
+};
 
 const seedGalleries: BackendGallery[] = [
   {
@@ -330,11 +426,11 @@ const seedHistory: BackendHistoryRecord[] = [
     title: "海边夕阳 橙红天空",
     turns: [
       {
-        query: { type: "text", text: "海边夕阳 橙红天空" },
+        query: { type: "text", textQuery: "海边夕阳 橙红天空" },
         matched_image: seedImages[0],
       },
       {
-        query: { type: "text", text: "加入倒影和广角构图" },
+        query: { type: "text", textQuery: "加入倒影和广角构图" },
         matched_image: seedImages[1],
       },
     ],
@@ -346,11 +442,11 @@ const seedHistory: BackendHistoryRecord[] = [
     title: "图片搜索",
     turns: [
       {
-        query: { type: "image", filename: "IMG_8212.JPG", previewUrl: "/gallery/landscapes/IMG_8212.JPG" },
+        query: { type: "image", imageUrl: "/gallery/landscapes/IMG_8212.JPG" },
         matched_image: seedImages[2],
       },
       {
-        query: { type: "text", text: "只看色调接近蓝绿色" },
+        query: { type: "text", textQuery: "只看色调接近蓝绿色" },
         matched_image: seedImages[5],
       },
     ],
@@ -362,7 +458,7 @@ const seedHistory: BackendHistoryRecord[] = [
     title: "人物 侧脸 室内 暖光",
     turns: [
       {
-        query: { type: "text", text: "人物 侧脸 室内 暖光" },
+        query: { type: "text", textQuery: "人物 侧脸 室内 暖光" },
         matched_image: seedImages[3],
       },
     ],
@@ -474,7 +570,8 @@ const getFilteredHistories = (keyword?: string) => {
         record.title,
         ...record.turns.map((turn) => {
           const queryLabel = getQueryLabel(turn.query);
-          return [queryLabel, turn.matched_image.filename, turn.matched_image.size_label].join(" ");
+          const queryText = getQueryContextText(turn.query);
+          return [queryLabel, queryText, turn.matched_image.filename, turn.matched_image.size_label].join(" ");
         }),
       ]
         .join(" ")
@@ -485,13 +582,22 @@ const getFilteredHistories = (keyword?: string) => {
 };
 
 const runLocalBestMatch = ({
+  searchSessionId,
+  type,
   textQuery,
-  contextualQuery,
+  imageUrl,
   referenceImageFile,
+  searchStrategy,
 }: SearchBestMatchPayload): BackendImage | null => {
-  const semanticText = [contextualQuery, textQuery].filter(Boolean).join(" ");
+  const sessionContext = getHistoryContext(searchSessionId);
+  const normalizedText = textQuery?.trim() ?? "";
+  const semanticText = [sessionContext, normalizedText].filter(Boolean).join(" ");
   const semanticTokens = tokenise(semanticText);
-  const fileStem = referenceImageFile?.name.split(".")[0]?.toLowerCase() ?? "";
+  const resolvedImageUrl = imageUrl?.trim() ?? "";
+  const fileStem = referenceImageFile?.name.split(".")[0]?.toLowerCase()
+    ?? resolvedImageUrl.split("/").pop()?.split(".")[0]?.toLowerCase()
+    ?? "";
+  const strategy = searchStrategy ?? "balanced";
   const activeImages = database.images.filter((image) => image.status === "active");
 
   if (activeImages.length === 0) {
@@ -502,21 +608,24 @@ const runLocalBestMatch = ({
     const score = (image: BackendImage) => {
       const base = (hashString(`${image.id}-${semanticText}`) % 100) / 100;
       const searchable = [image.filename, image.created_at, image.size_label].join(" ").toLowerCase();
+      const textOverlapWeight = strategy === "text-first" ? 1.8 : strategy === "image-first" ? 0.8 : 1.2;
+      const imagePrimaryBoost = strategy === "image-first" ? 3.2 : strategy === "text-first" ? 1.4 : 2.2;
+      const imageSecondaryBoost = strategy === "image-first" ? 1.2 : 0.8;
 
       let overlap = 0;
       semanticTokens.forEach((token) => {
         if (searchable.includes(token)) {
-          overlap += 1.2;
+          overlap += textOverlapWeight;
         }
       });
 
       let imageBoost = 0;
-      if (fileStem) {
+      if (type !== "text" && fileStem) {
         if (searchable.includes(fileStem.slice(0, 8))) {
-          imageBoost += 2.2;
+          imageBoost += imagePrimaryBoost;
         }
         if (searchable.includes(fileStem.slice(-6))) {
-          imageBoost += 0.8;
+          imageBoost += imageSecondaryBoost;
         }
       }
 
@@ -531,10 +640,14 @@ const runLocalBestMatch = ({
 
 const persistMockSearchHistory = (
   sessionId: string,
-  queryPreview: string | ImageItem,
+  payload: Pick<SearchBestMatchPayload, "type" | "textQuery" | "imageUrl" | "referencePreviewImage">,
   matchedImage: BackendImage
 ) => {
-  const query = createSearchQuery(queryPreview);
+  const query = createSearchQuery(payload);
+  if (!query) {
+    return;
+  }
+
   const now = nowIso();
   const existing = database.histories.find((record) => record.session_id === sessionId);
 
@@ -571,31 +684,39 @@ export const mediaApi = {
 
     if (endpointBase) {
       try {
-        const isFirstTurn = !payload.searchSessionId;
-        const endpoint = isFirstTurn
-          ? "/search/sessions"
-          : `/search/sessions/${payload.searchSessionId}/turns`;
-
-        const formData = new FormData();
-        if (payload.textQuery?.trim()) {
-          formData.append("text_query", payload.textQuery.trim());
-        }
-        if (payload.referenceImageFile) {
-          formData.append("reference_image", payload.referenceImageFile);
-        }
-        formData.append("top_k", String(payload.topK ?? 24));
-        formData.append("image_weight", String(payload.imageWeight ?? 0.7));
-        formData.append("text_weight", String(payload.textWeight ?? 0.3));
-
-        const response = await fetch(`${endpointBase}${endpoint}`, {
+        const response = await fetch(`${endpointBase}/api/search/best-match`, {
           method: "POST",
-          body: formData,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: payload.type,
+            text_query: payload.textQuery?.trim() || null,
+            image_url: payload.imageUrl?.trim() || payload.referencePreviewImage?.url || null,
+            search_session_id: payload.searchSessionId ?? null,
+            top_k: payload.topK ?? 24,
+            search_strategy: payload.searchStrategy ?? "balanced",
+          }),
         });
 
         if (response.ok) {
           const body = await response.json();
+          const directMatch = body?.best_match ?? body?.data?.best_match ?? null;
+          const nextSessionId =
+            body?.search_session_id
+            ?? body?.data?.search_session_id
+            ?? body?.data?.session?.session_id
+            ?? payload.searchSessionId
+            ?? null;
+
+          if (directMatch?.id && directMatch?.image_url) {
+            return {
+              bestMatch: toImageItem(directMatch),
+              searchSessionId: nextSessionId,
+            };
+          }
+
           const firstItem = body?.data?.turn?.items?.[0];
-          const nextSessionId = body?.data?.session?.session_id ?? payload.searchSessionId ?? null;
 
           if (firstItem) {
             const imageById = database.images.find(
@@ -626,8 +747,13 @@ export const mediaApi = {
     const bestMatch = runLocalBestMatch(payload);
     const nextSessionId = payload.searchSessionId ?? createId("history");
 
-    if (bestMatch && payload.queryPreview) {
-      persistMockSearchHistory(nextSessionId, payload.queryPreview, bestMatch);
+    if (bestMatch) {
+      persistMockSearchHistory(nextSessionId, {
+        type: payload.type,
+        textQuery: payload.textQuery,
+        imageUrl: payload.imageUrl,
+        referencePreviewImage: payload.referencePreviewImage,
+      }, bestMatch);
     }
 
     return {
@@ -668,6 +794,7 @@ export const mediaApi = {
     };
 
     database.galleries.unshift(record);
+    clearDetailContextCache();
     return toGalleryItem(record);
   },
 
@@ -688,6 +815,7 @@ export const mediaApi = {
     });
 
     const next = database.galleries.find((gallery) => gallery.id === id);
+    clearDetailContextCache();
     return next ? toGalleryItem(next) : null;
   },
 
@@ -698,6 +826,7 @@ export const mediaApi = {
       image.gallery_id === id ? { ...image, gallery_id: null } : image
     );
     syncGalleryImageCounts();
+    clearDetailContextCache();
   },
 
   async listImages(params?: { galleryId?: string | null; status?: ImageStatus; query?: string }) {
@@ -740,6 +869,7 @@ export const mediaApi = {
 
     database.images.unshift(image);
     syncGalleryImageCounts();
+    clearDetailContextCache();
     return toImageItem(image);
   },
 
@@ -754,6 +884,7 @@ export const mediaApi = {
         : image
     );
     syncGalleryImageCounts();
+    clearDetailContextCache();
     const next = database.images.find((image) => image.id === id);
     return next ? toImageItem(next) : null;
   },
@@ -767,6 +898,7 @@ export const mediaApi = {
         : image
     );
     syncGalleryImageCounts();
+    clearDetailContextCache();
   },
 
   async moveImagesToTrash(ids: string[]) {
@@ -779,6 +911,7 @@ export const mediaApi = {
         : image
     );
     syncGalleryImageCounts();
+    clearDetailContextCache();
   },
 
   async restoreImage(id: string) {
@@ -789,57 +922,54 @@ export const mediaApi = {
         : image
     );
     syncGalleryImageCounts();
+    clearDetailContextCache();
   },
 
   async permanentlyDeleteImage(id: string) {
     await wait();
     database.images = database.images.filter((image) => image.id !== id);
     syncGalleryImageCounts();
+    clearDetailContextCache();
   },
 
   async clearTrash() {
     await wait();
     database.images = database.images.filter((image) => image.status !== "trash");
     syncGalleryImageCounts();
+    clearDetailContextCache();
   },
 
   async getImageDetailContext(imageId: string, galleryId?: string): Promise<ImageDetailContext | null> {
-    await wait();
-    const image = database.images.find((entry) => entry.id === imageId);
-
-    if (!image) {
-      return null;
+    const cached = getCachedDetailContext(imageId, galleryId);
+    if (cached !== undefined) {
+      return cached;
     }
 
-    const collection = getFilteredImages({
-      status: "active",
-      galleryId: galleryId ?? undefined,
-      sortBy: "created_at",
-      sortOrder: "desc",
-    });
-    const currentIndex = collection.findIndex((entry) => entry.id === imageId);
-    const previousImage = currentIndex > 0 ? collection[currentIndex - 1] : null;
-    const nextImage = currentIndex >= 0 && currentIndex < collection.length - 1
-      ? collection[currentIndex + 1]
-      : null;
-    const relatedSource = image.gallery_id
-      ? getFilteredImages({ status: "active", galleryId: image.gallery_id })
-      : getFilteredImages({ status: "active" });
+    await wait();
+    const context = buildImageDetailContext(imageId, galleryId);
+    cacheDetailContext(imageId, galleryId, context);
+    return context;
+  },
 
-    return {
-      image: toImageItem(image),
-      previousImage: previousImage ? toImageItem(previousImage) : null,
-      nextImage: nextImage ? toImageItem(nextImage) : null,
-      relatedImages: relatedSource
-        .filter((entry) => entry.id !== image.id)
-        .slice(0, 4)
-        .map(toImageItem),
-    };
+  async prefetchImageDetailContext(imageId: string, galleryId?: string) {
+    const cached = getCachedDetailContext(imageId, galleryId);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const context = buildImageDetailContext(imageId, galleryId);
+    cacheDetailContext(imageId, galleryId, context);
+    return context;
   },
 
   async listHistory(keyword?: string) {
     await wait();
     return getFilteredHistories(keyword).map(toHistoryRecord);
+  },
+
+  async renameSearchSession(sessionId: string, title: string) {
+    await wait();
+    renameHistoryRecord(sessionId, title);
   },
 
   async deleteSearchSession(sessionId: string) {

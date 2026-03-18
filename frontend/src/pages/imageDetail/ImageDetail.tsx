@@ -18,6 +18,23 @@ import { PageHeader } from "@/pages/customcomponents/ui/PageHeader";
 import { ImageGrid } from "@/pages/customcomponents/ui/ImageGrid";
 import { ImageCard } from "@/pages/customcomponents/ui/imagecard";
 
+const imageResourceCache = new Set<string>();
+
+const preloadImageResource = (url?: string) => {
+  if (!url || imageResourceCache.has(url) || typeof window === "undefined") {
+    return;
+  }
+
+  const image = new window.Image();
+  image.onload = () => {
+    imageResourceCache.add(url);
+  };
+  image.onerror = () => {
+    imageResourceCache.delete(url);
+  };
+  image.src = url;
+};
+
 export default function ImageDetail() {
   const navigate = useNavigate();
   const { galleryId, imageid } = useParams<{ galleryId?: string; imageid: string }>();
@@ -44,6 +61,28 @@ export default function ImageDetail() {
   useEffect(() => {
     void loadContext();
   }, [loadContext]);
+
+  useEffect(() => {
+    if (!context) {
+      return;
+    }
+
+    preloadImageResource(context.image.url);
+
+    if (context.previousImage) {
+      void mediaApi.prefetchImageDetailContext(context.previousImage.id, galleryId);
+      preloadImageResource(context.previousImage.url);
+    }
+
+    if (context.nextImage) {
+      void mediaApi.prefetchImageDetailContext(context.nextImage.id, galleryId);
+      preloadImageResource(context.nextImage.url);
+    }
+
+    context.relatedImages.forEach((entry) => {
+      preloadImageResource(entry.thumbnailUrl ?? entry.url);
+    });
+  }, [context, galleryId]);
 
   const image = context?.image ?? null;
   const backPath = galleryId ? `/gallery/${galleryId}` : "/all-images";

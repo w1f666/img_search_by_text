@@ -34,6 +34,7 @@ interface GalleryState {
   restoreImage: (imageId: string) => Promise<void>;
   permanentlyDeleteImage: (imageId: string) => Promise<void>;
   clearTrash: () => Promise<void>;
+  renameSearchSession: (sessionId: string, title: string) => Promise<void>;
   deleteSearchSession: (sessionId: string) => Promise<void>;
 }
 
@@ -245,6 +246,11 @@ export const useGalleryStore = create<GalleryState>((set, get) => ({
     } finally {
       set({ isClearingTrash: false });
     }
+  },
+  renameSearchSession: async (sessionId, title) => {
+    await mediaApi.renameSearchSession(sessionId, title);
+    const data = await hydrateLibrary();
+    set({ ...data, initialized: true });
   },
   deleteSearchSession: async (sessionId) => {
     await mediaApi.deleteSearchSession(sessionId);

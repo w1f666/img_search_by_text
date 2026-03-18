@@ -5,11 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ImagePlus, Search, Sparkles, TimerReset } from "lucide-react";
 import { useGalleryStore } from "@/store/useGalleryStore";
-import type { HistoryRecord } from "@/types/media";
+import type { HistoryRecord, SearchQuery } from "@/types/media";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 
-function getTurnLabel(query: HistoryRecord["turns"][number][0]) {
-	return typeof query === "string" ? query : "图片搜索";
+function getTurnLabel(query: SearchQuery) {
+	return query.type === "text" ? query.textQuery : "图片搜索";
+	}
+
+function getTurnContextText(query: SearchQuery) {
+	if (query.type === "text") {
+		return query.textQuery;
+	}
+
+	if (query.type === "mixed") {
+		return query.textQuery;
+	}
+
+	return "";
 }
 
 function getSectionLabel(createdAt: string) {
@@ -71,7 +83,7 @@ export default function History() {
 				record.title,
 				...record.turns.map((turn) => {
 					const [queryValue, image] = turn;
-					return [getTurnLabel(queryValue), image.filename].join(" ");
+					return [getTurnLabel(queryValue), getTurnContextText(queryValue), image.filename].join(" ");
 				}),
 			]
 				.join(" ")
@@ -208,7 +220,7 @@ export default function History() {
 									<div className="rounded-2xl bg-muted/60 p-3">
 										<div className="text-xs text-muted-foreground">第一轮查询类型</div>
 										<div className="mt-1 font-medium">
-											{selectedRecord.turns.length > 0 && typeof selectedRecord.turns[0][0] !== "string" ? (
+											{selectedRecord.turns.length > 0 && selectedRecord.turns[0][0].type !== "text" ? (
 												<span className="inline-flex items-center gap-1">
 													<ImagePlus className="size-3.5" /> 图片搜索
 												</span>

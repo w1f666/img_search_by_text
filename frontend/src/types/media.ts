@@ -53,18 +53,24 @@ export interface ImageItem {
   deletedAt?: string;
 }
 
+export type SearchStrategy = "balanced" | "image-first" | "text-first";
+
 export type SearchQuery =
   | {
       type: "text";
-      text: string;
+      textQuery: string;
     }
   | {
       type: "image";
-      filename: string;
-      previewUrl?: string;
+      imageUrl: string;
+    }
+  | {
+      type: "mixed";
+      textQuery: string;
+      imageUrl: string;
     };
 
-export type HistoryTurn = [string | ImageItem, ImageItem];
+export type HistoryTurn = [SearchQuery, ImageItem];
 
 export interface HistoryRecord {
   id: string;
@@ -110,14 +116,14 @@ export interface ListImagesPageParams extends PaginationRequest {
 }
 
 export interface SearchBestMatchPayload {
+  type: SearchQuery["type"];
   textQuery?: string;
-  contextualQuery?: string;
-  queryPreview?: string | ImageItem;
+  imageUrl?: string;
   referenceImageFile?: File;
+  referencePreviewImage?: ImageItem;
   searchSessionId?: string;
   topK?: number;
-  imageWeight?: number;
-  textWeight?: number;
+  searchStrategy?: SearchStrategy;
 }
 
 export interface SearchBestMatchResponse {

@@ -8,11 +8,11 @@ import { Input } from "@/components/ui/input";
 import { useTopbarNameStore } from "@/store/useTopbarNameStore";
 import { useGalleryStore } from "@/store/useGalleryStore";
 import { mediaApi } from "@/lib/media-api";
-import type { ImageItem } from "@/types/media";
+import type { ImageItem, SearchQuery, SearchStrategy } from "@/types/media";
 import { FancySelect } from "@/pages/customcomponents/ui/FancySelect";
 
-const getQueryLabel = (query: string | ImageItem) =>
-    typeof query === "string" ? query : "图片搜索";
+const getQueryLabel = (query: SearchQuery) =>
+    query.type === "text" ? query.textQuery : "图片搜索";
 
 const GREETINGS = [
     "想找哪张图？给我一句描述，或者直接丢一张参考图。",
@@ -34,7 +34,7 @@ export default function Searchbar() {
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [greetingIndex, setGreetingIndex] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [searchMode, setSearchMode] = useState("balanced");
+    const [searchMode, setSearchMode] = useState<SearchStrategy>("balanced");
 
     const historyRecords = useGalleryStore((state) => state.historyRecords);
     const initLibrary = useGalleryStore((state) => state.initLibrary);
@@ -53,7 +53,6 @@ export default function Searchbar() {
     );
 
     const turns = selectedHistory?.turns ?? [];
-    const contextText = turns.map((turn) => getQueryLabel(turn[0])).join(" ");
     const latestTurn = turns[turns.length - 1] ?? null;
     const latestResult = latestTurn?.[1] ?? null;
 
@@ -135,11 +134,13 @@ export default function Searchbar() {
 
         try {
             const searchResponse = await mediaApi.searchBestMatch({
+                type: hasInput && hasUploadedImage ? "mixed" : hasUploadedImage ? "image" : "text",
                 textQuery: normalizedInput || undefined,
-                queryPreview: uploadedQueryImage ?? normalizedInput,
+                imageUrl: uploadedQueryImage?.url,
                 referenceImageFile: uploadedFile ?? undefined,
+                referencePreviewImage: uploadedQueryImage ?? undefined,
                 searchSessionId: selectedHistory?.id,
-                contextualQuery: contextText,
+                searchStrategy: searchMode,
             });
 
             if (!searchResponse.bestMatch) {
@@ -287,7 +288,7 @@ export default function Searchbar() {
                             <FancySelect
                                 value={searchMode}
                                 options={modeOptions}
-                                onValueChange={setSearchMode}
+                                onValueChange={(value) => setSearchMode(value as SearchStrategy)}
                                 className="h-10 rounded-2xl border-slate-200/80 bg-gradient-to-r from-slate-50/70 via-white to-slate-100/65 dark:border-zinc-700/80 dark:from-zinc-800/90 dark:via-zinc-800 dark:to-zinc-800/90 dark:bg-zinc-800"
                             />
                         </div>

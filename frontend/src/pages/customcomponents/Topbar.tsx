@@ -3,8 +3,17 @@ import { AnimatePresence, motion } from "framer-motion"
 import Breadcrumb from "@/pages/customcomponents/ui/Breadcrumb"
 import { SiGithub } from "react-icons/si"
 import { Button } from "@/components/ui/button"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Moon, Sun, EllipsisVertical, Sparkles } from "lucide-react"
+import { LoaderCircle, Moon, PencilLine, Sun, EllipsisVertical, Sparkles } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,14 +27,50 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function Topbar(){
     const {isSearched, Keywords, SetKeywords, SetisSearched} = useTopbarNameStore();
+    const historyRecords = useGalleryStore((state) => state.historyRecords);
+    const renameSearchSession = useGalleryStore((state) => state.renameSearchSession);
     const deleteSearchSession = useGalleryStore((state) => state.deleteSearchSession);
     const [menuOpen, setMenuOpen] = useState(false);
+    const [renameOpen, setRenameOpen] = useState(false);
+    const [renameValue, setRenameValue] = useState("");
+    const [isRenaming, setIsRenaming] = useState(false);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const GithubURL = "https://github.com/quark-sp/image-search-and-duplicate-by-CLIP";
     const {theme, setTheme, resolvedTheme} = useTheme();
     const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark");
     const currentSessionId = searchParams.get("history");
+    const currentHistory = historyRecords.find((record) => record.id === currentSessionId) ?? null;
+
+    function openRenameDialog(){
+        if (!currentHistory) {
+            return;
+        }
+
+        setRenameValue(currentHistory.title);
+        setRenameOpen(true);
+        setMenuOpen(false);
+    }
+
+    async function RenameChat(){
+        if (!currentSessionId) {
+            return;
+        }
+
+        const nextTitle = renameValue.trim();
+        if (!nextTitle) {
+            return;
+        }
+
+        setIsRenaming(true);
+        try {
+            await renameSearchSession(currentSessionId, nextTitle);
+            SetKeywords(nextTitle);
+            setRenameOpen(false);
+        } finally {
+            setIsRenaming(false);
+        }
+    }
 
     async function Deletechat(){
         if (!currentSessionId) {
@@ -110,10 +155,42 @@ export default function Topbar(){
                         </motion.div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="rounded-2xl border-slate-200/70 bg-white/95 p-1.5 shadow-2xl backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/95">
+                        <DropdownMenuItem disabled={!currentSessionId} onClick={openRenameDialog} className="rounded-lg">
+                            <PencilLine className="mr-2 size-4" />
+                            更改对话名称
+                        </DropdownMenuItem>
                         <DropdownMenuItem disabled={!currentSessionId} onClick={() => void Deletechat()} className="rounded-lg focus:bg-red-50 focus:text-red-700 dark:focus:bg-red-900/30 dark:focus:text-red-400">删除会话</DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
+
+            <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>更改对话名称</DialogTitle>
+                        <DialogDescription>
+                            修改后，顶部显示的名称和历史记录标题都会同步更新，不再固定使用第一轮 Query。
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-2">
+                        <span className="text-sm font-medium">对话名称</span>
+                        <Input
+                            value={renameValue}
+                            onChange={(event) => setRenameValue(event.target.value)}
+                            placeholder="输入新的对话名称"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setRenameOpen(false)}>
+                            取消
+                        </Button>
+                        <Button disabled={isRenaming || !renameValue.trim()} onClick={() => void RenameChat()}>
+                            {isRenaming ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                            保存名称
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
