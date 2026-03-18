@@ -1,4 +1,5 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,17 +11,24 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ImagePlus, LoaderCircle, Trash2 } from "lucide-react";
+import { mediaApi } from "@/lib/media-api";
 import { useGalleryStore } from "@/store/useGalleryStore";
-import type { CreateImagePayload, ImageItem } from "@/types/media";
-import { ImageCard } from "../customcomponents/ui/imagecard";
-import { PageHeader } from "../customcomponents/ui/PageHeader";
-import { ImageGrid } from "../customcomponents/ui/ImageGrid";
+import type { CreateImagePayload, ImageItem, PaginationMeta } from "@/types/media";
 import { FancySelect } from "../customcomponents/ui/FancySelect";
+import { ImageGrid } from "../customcomponents/ui/ImageGrid";
+import { PaginationBar } from "../customcomponents/ui/PaginationBar";
+import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
+import { ImageCard } from "../customcomponents/ui/imagecard";
+
+const PAGE_SIZE = 20;
 
 export default function AllImages() {
-  const activeImages = useGalleryStore((state) => state.activeImages);
+  const navigate = useNavigate();
   const galleryList = useGalleryStore((state) => state.galleryList);
+  const activeImages = useGalleryStore((state) => state.activeImages);
+  const initialized = useGalleryStore((state) => state.initialized);
+  const isInitializing = useGalleryStore((state) => state.isInitializing);
   const isAddingImage = useGalleryStore((state) => state.isAddingImage);
   const pendingImageIds = useGalleryStore((state) => state.pendingImageIds);
   const initLibrary = useGalleryStore((state) => state.initLibrary);
@@ -29,9 +37,13 @@ export default function AllImages() {
   const [query, setQuery] = useState("");
   const [galleryFilter, setGalleryFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
   const [form, setForm] = useState<CreateImagePayload>({
     filename: "",
-    size: "",
+    sizeLabel: "",
     url: "/gallery/landscapes/IMG_8212.JPG",
     galleryId: null,
   });
@@ -41,27 +53,36 @@ export default function AllImages() {
     void initLibrary();
   }, [initLibrary]);
 
-  const filteredImages = useMemo(() => {
-    const normalizedQuery = deferredQuery.trim().toLowerCase();
+  const loadPage = useCallback(async (nextPage: number) => {
+    setIsPageLoading(true);
+    try {
+      const range = mediaApi.buildRange(nextPage, PAGE_SIZE);
+      const response = await mediaApi.listImagesPage({
+        ...range,
+        status: "active",
+        galleryId:
+          galleryFilter === "all"
+            ? undefined
+            : galleryFilter === "ungrouped"
+              ? null
+              : galleryFilter,
+        query: deferredQuery || undefined,
+      });
 
-    return activeImages.filter((image) => {
-      const matchesGallery =
-        galleryFilter === "all"
-          ? true
-          : galleryFilter === "ungrouped"
-            ? image.galleryId === null
-            : image.galleryId === galleryFilter;
+      setImages(response.items);
+      setPagination(response.meta);
+    } finally {
+      setIsPageLoading(false);
+    }
+  }, [deferredQuery, galleryFilter]);
 
-      const matchesQuery =
-        normalizedQuery.length === 0 ||
-        [image.filename, image.size]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery);
+  useEffect(() => {
+    setPage(1);
+  }, [deferredQuery, galleryFilter]);
 
-      return matchesGallery && matchesQuery;
-    });
-  }, [activeImages, deferredQuery, galleryFilter]);
+  useEffect(() => {
+    void loadPage(page);
+  }, [activeImages.length, loadPage, page]);
 
   const ungroupedCount = useMemo(
     () => activeImages.filter((image) => image.galleryId === null).length,
@@ -69,67 +90,72 @@ export default function AllImages() {
   );
 
   const findGalleryName = (image: ImageItem) => {
-    return galleryList.find((gallery) => gallery.id === image.galleryId)?.Galleryname ?? "未归类";
+    return galleryList.find((gallery) => gallery.id === image.galleryId)?.name ?? "未归类";
   };
 
   const resetForm = () => {
     setForm({
       filename: "",
-      size: "",
+      sizeLabel: "",
       url: "/gallery/landscapes/IMG_8212.JPG",
       galleryId: null,
     });
   };
 
   const handleCreateImage = async () => {
-    if (!form.filename.trim() || !form.size.trim()) {
+    if (!form.filename.trim() || !form.sizeLabel.trim()) {
       return;
     }
 
     await addImage({
       ...form,
       filename: form.filename.trim(),
-      size: form.size.trim(),
+      sizeLabel: form.sizeLabel.trim(),
+      url: form.url.trim(),
     });
     setDialogOpen(false);
     resetForm();
+    setPage(1);
+    await loadPage(1);
   };
 
   const handleDelete = async (imageId: string) => {
     await moveImageToTrash(imageId);
+    await loadPage(page);
   };
 
   const galleryFilterOptions = [
-    { value: "all", label: "全部相册", hint: `包含 ${galleryList.length} 个相册` },
-    { value: "ungrouped", label: "仅未归类", hint: `${ungroupedCount} 张待分组` },
+    { value: "all", label: "全部图集", hint: `共 ${galleryList.length} 个图集` },
+    { value: "ungrouped", label: "仅未归类", hint: `${ungroupedCount} 张待整理` },
     ...galleryList.map((gallery) => ({
       value: gallery.id,
-      label: gallery.Galleryname,
-      hint: `${gallery.count} 张图片`,
+      label: gallery.name,
+      hint: `${gallery.imageCount} 张图片`,
     })),
   ];
 
   return (
-    <div className="flex flex-col gap-6 px-4 py-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div data-page-shell className="flex flex-col gap-6 px-5 py-8 sm:px-6 lg:px-8">
+      <section data-page-hero className="flex flex-col gap-4 rounded-[2rem] px-5 py-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
-          <PageHeader title="所有照片" description="先走本地状态，后续直接替换为后端接口即可。" />
+          <PageHeader title="所有图片" description="首次进入和每次翻页都直接请求分页 API，不再依赖前端全量过滤。" />
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-            <span className="rounded-full bg-muted px-3 py-1">共 {activeImages.length} 张</span>
-            <span className="rounded-full bg-muted px-3 py-1">未归类 {ungroupedCount} 张</span>
-            <span className="rounded-full bg-muted px-3 py-1">相册 {galleryList.length} 个</span>
+            <span data-page-chip className="rounded-full px-3 py-1">共 {pagination?.total ?? activeImages.length} 张</span>
+            <span data-page-chip className="rounded-full px-3 py-1">未归类 {ungroupedCount} 张</span>
+            <span data-page-chip className="rounded-full px-3 py-1">图集 {galleryList.length} 个</span>
           </div>
         </div>
         <Button onClick={() => setDialogOpen(true)}>
           <ImagePlus />
           添加图片
         </Button>
-      </div>
+      </section>
 
       <SearchToolbar
         value={query}
         onChange={setQuery}
         placeholder="按文件名搜索图片"
+        className="rounded-[1.75rem]"
         rightSlot={
           <FancySelect
             value={galleryFilter}
@@ -139,42 +165,52 @@ export default function AllImages() {
         }
       />
 
-      {filteredImages.length > 0 ? (
-        <ImageGrid>
-          {filteredImages.map((image) => (
-            <div key={image.id} className="space-y-2">
-              <ImageCard
-                image={image}
-                busy={pendingImageIds.includes(image.id)}
-                actionMask={
-                  <Button
-                    size="icon-sm"
-                    variant="destructive"
-                    className="rounded-full"
-                    disabled={pendingImageIds.includes(image.id)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      void handleDelete(image.id);
-                    }}
-                  >
-                    {pendingImageIds.includes(image.id) ? (
-                      <LoaderCircle className="size-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-4" />
-                    )}
-                  </Button>
-                }
-              />
-              <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-                <span>{findGalleryName(image)}</span>
-                <span>{image.source === "upload" ? "手动添加" : "扫描导入"}</span>
+      {isInitializing && !initialized && images.length === 0 ? (
+        <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
+          正在加载图片数据...
+        </div>
+      ) : images.length > 0 ? (
+        <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
+          <ImageGrid>
+            {images.map((image) => (
+              <div key={image.id} className="space-y-2">
+                <ImageCard
+                  image={image}
+                  onClick={() => navigate(`/all-images/${image.id}`)}
+                  busy={pendingImageIds.includes(image.id)}
+                  actionMask={
+                    <Button
+                      size="icon-sm"
+                      variant="destructive"
+                      className="rounded-full"
+                      disabled={pendingImageIds.includes(image.id)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleDelete(image.id);
+                      }}
+                    >
+                      {pendingImageIds.includes(image.id) ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-4" />
+                      )}
+                    </Button>
+                  }
+                />
+                <div className="flex items-center justify-between px-2 text-xs text-muted-foreground">
+                  <span>{findGalleryName(image)}</span>
+                  <span>{image.source === "upload" ? "手动添加" : "扫描导入"}</span>
+                </div>
               </div>
-            </div>
-          ))}
-        </ImageGrid>
+            ))}
+          </ImageGrid>
+          {pagination ? (
+            <PaginationBar meta={pagination} disabled={isPageLoading} onPageChange={setPage} />
+          ) : null}
+        </section>
       ) : (
-        <div className="rounded-3xl border border-dashed bg-muted/30 px-6 py-16 text-center text-sm text-muted-foreground">
-          当前筛选条件下没有图片，可以调整筛选条件或直接添加新图片。
+        <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
+          {isPageLoading ? "正在加载图片数据..." : "当前筛选条件下没有图片，可以调整筛选条件或直接添加新图片。"}
         </div>
       )}
 
@@ -183,7 +219,7 @@ export default function AllImages() {
           <DialogHeader>
             <DialogTitle>添加图片</DialogTitle>
             <DialogDescription>
-              这里先走本地 mock 数据。接后端时，将表单提交替换为真实上传接口即可。
+              表单字段已对齐后端图片创建接口，提交后会刷新当前分页结果和全局图片状态。
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -201,15 +237,15 @@ export default function AllImages() {
               <div className="grid gap-2">
                 <span className="text-sm font-medium">文件大小</span>
                 <Input
-                  value={form.size}
+                  value={form.sizeLabel}
                   onChange={(event) =>
-                    setForm((current) => ({ ...current, size: event.target.value }))
+                    setForm((current) => ({ ...current, sizeLabel: event.target.value }))
                   }
                   placeholder="例如：3.6 MB"
                 />
               </div>
               <div className="grid gap-2">
-                <span className="text-sm font-medium">所属相册</span>
+                <span className="text-sm font-medium">所属图集</span>
                 <select
                   value={form.galleryId ?? "none"}
                   onChange={(event) =>
@@ -223,7 +259,7 @@ export default function AllImages() {
                   <option value="none">暂不归类</option>
                   {galleryList.map((gallery) => (
                     <option key={gallery.id} value={gallery.id}>
-                      {gallery.Galleryname}
+                      {gallery.name}
                     </option>
                   ))}
                 </select>
@@ -241,7 +277,13 @@ export default function AllImages() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDialogOpen(false);
+                resetForm();
+              }}
+            >
               取消
             </Button>
             <Button disabled={isAddingImage} onClick={() => void handleCreateImage()}>

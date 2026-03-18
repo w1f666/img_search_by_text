@@ -10,6 +10,8 @@ interface ImageCardProps {
 }
 
 export function ImageCard({ image, onClick, actionMask, busy = false }: ImageCardProps) {
+  const isInteractive = Boolean(onClick);
+
   const handleCardClick = () => {
     if (!busy && onClick) {
       onClick();
@@ -18,20 +20,20 @@ export function ImageCard({ image, onClick, actionMask, busy = false }: ImageCar
 
   return (
     <div 
-      className={`group transition-transform duration-300 ease-out active:scale-[0.95] ${
-        busy ? "cursor-progress" : "cursor-pointer hover:scale-[0.97]"
+      className={`group rounded-[1.6rem] border border-border/60 bg-card/80 p-3 shadow-sm transition-transform duration-300 ease-out active:scale-[0.95] ${
+        busy ? "cursor-progress" : isInteractive ? "cursor-pointer hover:scale-[0.97]" : "cursor-default"
       }`}
       onClick={handleCardClick}
     >
-      <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-muted ring-1 ring-border/50 transition-shadow duration-300 group-hover:shadow-lg group-hover:shadow-primary/5 group-hover:ring-primary/20">
+      <div className="relative aspect-square w-full overflow-hidden rounded-[1.2rem] bg-muted ring-1 ring-border/50 transition-shadow duration-300 group-hover:shadow-lg group-hover:shadow-primary/5 group-hover:ring-primary/20">
         <img 
           src={image.url} 
           alt={image.filename} 
           loading="lazy" 
           className="h-full w-full object-cover transition-[filter] duration-300 group-hover:brightness-105"
            />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-        <div className={`absolute inset-0 flex items-center justify-center gap-2 bg-black/40 transition-opacity duration-200 ${busy ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+        <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/28 to-transparent transition-opacity duration-300 ${isInteractive ? "opacity-0 group-hover:opacity-100" : "opacity-70"}`} />
+        <div className={`absolute inset-0 flex items-center justify-center gap-2 bg-black/40 transition-opacity duration-200 ${busy ? "opacity-100" : isInteractive || actionMask ? "opacity-0 group-hover:opacity-100" : "opacity-0"}`}>
           {actionMask ? actionMask : (
             <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" onClick={(e) => { e.stopPropagation(); }}>
               <Maximize2 className="h-4 w-4" />
@@ -44,11 +46,11 @@ export function ImageCard({ image, onClick, actionMask, busy = false }: ImageCar
           </div>
         ) : null}
       </div>
-      <div className="px-1 py-2">
-        <p className="truncate text-sm font-medium text-foreground group-hover:text-primary transition-colors">{image.filename}</p>
+      <div className="px-1 pt-3 pb-1">
+        <p className={`truncate text-sm font-medium text-foreground transition-colors ${isInteractive ? "group-hover:text-primary" : ""}`}>{image.filename}</p>
         <div className="mt-1 flex items-center justify-between">
           <p className="text-xs text-muted-foreground">{image.createdAt}</p>
-          <p className="text-xs text-muted-foreground">{image.size}</p>
+          <p className="text-xs text-muted-foreground">{image.sizeLabel}</p>
         </div>
       </div>
     </div>

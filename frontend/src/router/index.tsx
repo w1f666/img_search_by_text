@@ -6,6 +6,7 @@ import GalleryImage from "@/pages/galleryimage/GalleryImage";
 import Trash from "@/pages/Trash/Trash";
 import AllImages from "@/pages/allImages/AllImages";
 import History from "@/pages/History/History";
+import ImageDetail from "../pages/imageDetail/ImageDetail";
 
 const router = createBrowserRouter([
     {
@@ -35,10 +36,22 @@ const router = createBrowserRouter([
             },
             {
                 path: "all-images",
-                element: <AllImages/>,
                 handle: {
                     breadcrumb: () => "所有图片"
-                }
+                },
+                children: [
+                    {
+                        index: true,
+                        element: <AllImages/>,
+                    },
+                    {
+                        path: ":imageid",
+                        element: <ImageDetail/>,
+                        handle: {
+                            breadcrumb: () => "图片详情"
+                        }
+                    }
+                ]
             },
             {
                 path: "gallery",
@@ -51,9 +64,9 @@ const router = createBrowserRouter([
                     element: <Gallery/>,
             },
                     {
-                path:":galleryname",
+                path:":galleryId",
                 handle: {
-                    breadcrumb: (match: UIMatch) => match.params.galleryname
+                    breadcrumb: (match: UIMatch) => match.params.galleryId ?? "图集详情"
                 },
                 children:[
                     {
@@ -62,9 +75,9 @@ const router = createBrowserRouter([
                     },
                     {
                         path: ":imageid",
-                        element: <div>ImageDetail</div>,
+                        element: <ImageDetail/>,
                         handle: {
-                            breadcrumb: (match: UIMatch) => match.params.imageid
+                            breadcrumb: () => "图片详情"
                         }
                     }
                 ]

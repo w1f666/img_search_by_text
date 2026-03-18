@@ -11,10 +11,11 @@ interface SidebarIconProp{
     label: string,
     icon: LucideIcon,
     className?: string,
+  iconClassName?: string,
     hideTooltip?: boolean,
 }
 
-export default function Sidebaricon({onClick, label, icon:Icon, className, hideTooltip}: SidebarIconProp){
+export default function Sidebaricon({onClick, label, icon:Icon, className, iconClassName, hideTooltip}: SidebarIconProp){
     const [open, setOpen] = useState(false);
     const handleOpenChange = useCallback((next: boolean) => {
       if (hideTooltip) { setOpen(false); return; }
@@ -28,7 +29,7 @@ export default function Sidebaricon({onClick, label, icon:Icon, className, hideT
               onClick={onClick}
               className={`flex items-center justify-center w-(--sidebar-width-icon) h-10 shrink-0  ${className ?? ""}`}
             >
-              <div className="size-8 flex items-center justify-center rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
+              <div className={`size-8 flex items-center justify-center rounded-md transition-colors ${iconClassName ?? "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"}`}>
                 <Icon className="size-[18px]" />
               </div>
             </button>

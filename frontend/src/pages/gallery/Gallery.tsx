@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -10,11 +10,16 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { FolderPen, FolderPlus, LoaderCircle, Trash2 } from "lucide-react";
-import { GalleryCard } from "../customcomponents/ui/gallerycard";
+import { mediaApi } from "@/lib/media-api";
 import { useGalleryStore } from "@/store/useGalleryStore";
+import type { GalleryItem, PaginationMeta } from "@/types/media";
+import { GalleryCard } from "../customcomponents/ui/gallerycard";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { FancySelect } from "../customcomponents/ui/FancySelect";
+import { PaginationBar } from "../customcomponents/ui/PaginationBar";
 import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
+
+const PAGE_SIZE = 12;
 
 export default function Gallery() {
   const galleryList = useGalleryStore((state) => state.galleryList);
@@ -27,45 +32,49 @@ export default function Gallery() {
   const updateGallery = useGalleryStore((state) => state.updateGallery);
   const deleteGallery = useGalleryStore((state) => state.deleteGallery);
   const [query, setQuery] = useState("");
-  const [sortMode, setSortMode] = useState<"time" | "name" | "count">("time");
+  const [sortMode, setSortMode] = useState<"created_at" | "name" | "image_count">("created_at");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ Galleryname: "", description: "" });
+  const [page, setPage] = useState(1);
+  const [isPageLoading, setIsPageLoading] = useState(false);
+  const [items, setItems] = useState<GalleryItem[]>([]);
+  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+  const [form, setForm] = useState({ name: "", description: "" });
   const deferredQuery = useDeferredValue(query);
 
   useEffect(() => {
     void initLibrary();
   }, [initLibrary]);
 
-  const filteredGalleries = useMemo(() => {
-    const normalizedQuery = deferredQuery.trim().toLowerCase();
-    const nextList = galleryList.filter((gallery) => {
-      if (!normalizedQuery) {
-        return true;
-      }
+  const loadPage = useCallback(async (nextPage: number) => {
+    setIsPageLoading(true);
+    try {
+      const range = mediaApi.buildRange(nextPage, PAGE_SIZE);
+      const response = await mediaApi.listGalleriesPage({
+        ...range,
+        query: deferredQuery || undefined,
+        sortBy: sortMode,
+        sortOrder: "desc",
+      });
 
-      return [gallery.Galleryname, gallery.description]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery);
-    });
+      setItems(response.items);
+      setPagination(response.meta);
+    } finally {
+      setIsPageLoading(false);
+    }
+  }, [deferredQuery, sortMode]);
 
-    return nextList.sort((left, right) => {
-      if (sortMode === "name") {
-        return left.Galleryname.localeCompare(right.Galleryname, "zh-Hans-CN");
-      }
+  useEffect(() => {
+    setPage(1);
+  }, [deferredQuery, sortMode]);
 
-      if (sortMode === "count") {
-        return right.count - left.count;
-      }
-
-      return right.CreatedTime.localeCompare(left.CreatedTime);
-    });
-  }, [deferredQuery, galleryList, sortMode]);
+  useEffect(() => {
+    void loadPage(page);
+  }, [loadPage, page, galleryList.length]);
 
   const openCreateDialog = () => {
     setEditingId(null);
-    setForm({ Galleryname: "", description: "" });
+    setForm({ name: "", description: "" });
     setDialogOpen(true);
   };
 
@@ -77,14 +86,14 @@ export default function Gallery() {
 
     setEditingId(galleryId);
     setForm({
-      Galleryname: gallery.Galleryname,
+      name: gallery.name,
       description: gallery.description,
     });
     setDialogOpen(true);
   };
 
   const handleSubmit = async () => {
-    if (!form.Galleryname.trim()) {
+    if (!form.name.trim()) {
       return;
     }
 
@@ -95,6 +104,8 @@ export default function Gallery() {
     }
 
     setDialogOpen(false);
+    setPage(1);
+    await loadPage(1);
   };
 
   const handleDelete = async (galleryId: string, galleryName: string) => {
@@ -103,93 +114,105 @@ export default function Gallery() {
     }
 
     await deleteGallery(galleryId);
+    await loadPage(page);
   };
 
   const isEditingPending = editingId ? pendingGalleryIds.includes(editingId) : false;
   const isSubmitting = isCreatingGallery || isEditingPending;
 
   const sortOptions = [
-    { value: "time", label: "按创建时间", hint: "最新创建优先" },
+    { value: "created_at", label: "按创建时间", hint: "最新创建优先" },
     { value: "name", label: "按名称", hint: "按拼音顺序" },
-    { value: "count", label: "按图片数量", hint: "从多到少排序" },
+    { value: "image_count", label: "按图片数量", hint: "从多到少排序" },
   ];
 
+  const totalImageCount = useMemo(
+    () => galleryList.reduce((sum, gallery) => sum + gallery.imageCount, 0),
+    [galleryList]
+  );
+
   return (
-    <div className="flex flex-col gap-6 px-4 py-8">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <div data-page-shell className="flex flex-col gap-6 px-5 py-8 sm:px-6 lg:px-8">
+      <section data-page-hero className="flex flex-col gap-4 rounded-[2rem] px-5 py-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2">
-          <PageHeader title="图集管理" description="支持本地 mock 的相册增删改查，后续可直接接入真实接口。" />
+          <PageHeader title="图集管理" description="图集列表改为分页请求，搜索和翻页都会直接调用 API。" />
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-            <span className="rounded-full bg-muted px-3 py-1">共 {galleryList.length} 个相册</span>
-            <span className="rounded-full bg-muted px-3 py-1">已收录 {galleryList.reduce((sum, gallery) => sum + gallery.count, 0)} 张</span>
+            <span data-page-chip className="rounded-full px-3 py-1">共 {pagination?.total ?? galleryList.length} 个相册</span>
+            <span data-page-chip className="rounded-full px-3 py-1">已收录 {totalImageCount} 张</span>
           </div>
         </div>
         <Button onClick={openCreateDialog}>
           <FolderPlus />
           新建相册
         </Button>
-      </div>
+      </section>
 
       <SearchToolbar
         value={query}
         onChange={setQuery}
         placeholder="搜索相册名或描述"
+        className="rounded-[1.75rem]"
         rightSlot={
           <FancySelect
             value={sortMode}
-            onValueChange={(value) => setSortMode(value as "time" | "name" | "count")}
+            onValueChange={(value) => setSortMode(value as "created_at" | "name" | "image_count")}
             options={sortOptions}
           />
         }
       />
 
-      {isInitializing && !initialized ? (
-        <div className="rounded-3xl border border-dashed bg-muted/30 px-6 py-16 text-center text-sm text-muted-foreground">
+      {isInitializing && !initialized && items.length === 0 ? (
+        <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
           正在加载相册数据...
         </div>
-      ) : filteredGalleries.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {filteredGalleries.map((item) => (
-            <GalleryCard
-              key={item.id}
-              {...item}
-              busy={pendingGalleryIds.includes(item.id)}
-              actionSlot={
-                <>
-                  <Button
-                    size="icon-sm"
-                    variant="secondary"
-                    className="rounded-full bg-background/80"
-                    disabled={pendingGalleryIds.includes(item.id)}
-                    onClick={() => openEditDialog(item.id)}
-                  >
-                    {pendingGalleryIds.includes(item.id) ? (
-                      <LoaderCircle className="size-4 animate-spin" />
-                    ) : (
-                      <FolderPen className="size-4" />
-                    )}
-                  </Button>
-                  <Button
-                    size="icon-sm"
-                    variant="destructive"
-                    className="rounded-full"
-                    disabled={pendingGalleryIds.includes(item.id)}
-                    onClick={() => void handleDelete(item.id, item.Galleryname)}
-                  >
-                    {pendingGalleryIds.includes(item.id) ? (
-                      <LoaderCircle className="size-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="size-4" />
-                    )}
-                  </Button>
-                </>
-              }
-            />
-          ))}
-        </div>
+      ) : items.length > 0 ? (
+        <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {items.map((item) => (
+              <GalleryCard
+                key={item.id}
+                {...item}
+                busy={pendingGalleryIds.includes(item.id)}
+                actionSlot={
+                  <>
+                    <Button
+                      size="icon-sm"
+                      variant="secondary"
+                      className="rounded-full bg-background/80"
+                      disabled={pendingGalleryIds.includes(item.id)}
+                      onClick={() => openEditDialog(item.id)}
+                    >
+                      {pendingGalleryIds.includes(item.id) ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <FolderPen className="size-4" />
+                      )}
+                    </Button>
+                    <Button
+                      size="icon-sm"
+                      variant="destructive"
+                      className="rounded-full"
+                      disabled={pendingGalleryIds.includes(item.id)}
+                      onClick={() => void handleDelete(item.id, item.name)}
+                    >
+                      {pendingGalleryIds.includes(item.id) ? (
+                        <LoaderCircle className="size-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-4" />
+                      )}
+                    </Button>
+                  </>
+                }
+              />
+            ))}
+          </div>
+          {pagination ? (
+            <PaginationBar meta={pagination} disabled={isPageLoading} onPageChange={setPage} />
+          ) : null}
+        </section>
       ) : (
-        <div className="rounded-3xl border border-dashed bg-muted/30 px-6 py-16 text-center text-sm text-muted-foreground">
-          没有匹配的相册，可以直接创建一个新的。
+        <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
+          {isPageLoading ? "正在加载相册数据..." : "没有匹配的相册，可以直接创建一个新的。"}
         </div>
       )}
 
@@ -198,16 +221,16 @@ export default function Gallery() {
           <DialogHeader>
             <DialogTitle>{editingId ? "编辑相册" : "新建相册"}</DialogTitle>
             <DialogDescription>
-              现在是前端本地数据流，后续只需要把 store 中的调用替换为后端接口。
+              当前表单字段已对齐后端结构，提交后会刷新分页列表和全局图集状态。
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
             <div className="grid gap-2">
               <span className="text-sm font-medium">相册名称</span>
               <Input
-                value={form.Galleryname}
+                value={form.name}
                 onChange={(event) =>
-                  setForm((current) => ({ ...current, Galleryname: event.target.value }))
+                  setForm((current) => ({ ...current, name: event.target.value }))
                 }
                 placeholder="例如：旅行精选"
               />

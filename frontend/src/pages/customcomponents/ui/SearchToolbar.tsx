@@ -24,7 +24,7 @@ export function SearchToolbar({
   return (
     <div
       className={cn(
-        "grid gap-3 rounded-3xl border bg-card/70 p-4 shadow-sm backdrop-blur",
+        "grid gap-3 rounded-3xl border border-border/70 bg-card/80 p-4 shadow-sm backdrop-blur",
         hasRightSlot && "md:grid-cols-[minmax(0,1fr)_220px]",
         className
       )}

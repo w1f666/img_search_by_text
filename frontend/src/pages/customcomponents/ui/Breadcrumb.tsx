@@ -31,7 +31,10 @@ export default function CustomBreadcrumbs() {
     const crumbs = matches
     .filter((match) => Boolean(match.handle?.breadcrumb))
     .map((match) => {
-        const name = match.handle.breadcrumb(match)
+        const rawName = match.handle.breadcrumb(match)
+        const name = match.params.galleryId
+            ? galleryList.find((gallery) => gallery.id === match.params.galleryId)?.name ?? rawName
+            : rawName
         return {
             name,
             path: match.pathname,
@@ -62,10 +65,10 @@ export default function CustomBreadcrumbs() {
                                             {galleryList.length > 0 ? (
                                                 galleryList.map((g) => (
                                                     <DropdownMenuItem
-                                                        key={g.Galleryname}
-                                                        onClick={() => navigate(`/gallery/${g.Galleryname}`)}
+                                                        key={g.id}
+                                                        onClick={() => navigate(`/gallery/${g.id}`)}
                                                     >
-                                                        {g.Galleryname}
+                                                        {g.name}
                                                     </DropdownMenuItem>
                                                 ))
                                             ) : (

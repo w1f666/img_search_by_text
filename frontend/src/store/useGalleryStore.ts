@@ -34,11 +34,7 @@ interface GalleryState {
   restoreImage: (imageId: string) => Promise<void>;
   permanentlyDeleteImage: (imageId: string) => Promise<void>;
   clearTrash: () => Promise<void>;
-  createHistoryRecord: (turn: [string | ImageItem, ImageItem]) => Promise<HistoryRecord>;
-  appendHistoryTurn: (
-    historyId: string,
-    turn: [string | ImageItem, ImageItem]
-  ) => Promise<HistoryRecord>;
+  deleteSearchSession: (sessionId: string) => Promise<void>;
 }
 
 const hydrateLibrary = async () => {
@@ -250,16 +246,9 @@ export const useGalleryStore = create<GalleryState>((set, get) => ({
       set({ isClearingTrash: false });
     }
   },
-  createHistoryRecord: async (turn) => {
-    const created = await mediaApi.createHistory(turn);
+  deleteSearchSession: async (sessionId) => {
+    await mediaApi.deleteSearchSession(sessionId);
     const data = await hydrateLibrary();
     set({ ...data, initialized: true });
-    return created;
-  },
-  appendHistoryTurn: async (historyId, turn) => {
-    const record = await mediaApi.appendHistoryTurn(historyId, turn);
-    const data = await hydrateLibrary();
-    set({ ...data, initialized: true });
-    return record;
   },
 }));

@@ -25,15 +25,24 @@ interface SidebarNavItemProps {
 }
 
 function SidebarNavItem({ onClick, label, icon, state, className }: SidebarNavItemProps) {
+
   return (
-    <div className={`flex items-center justify-start ${className ?? ""}`}>
-      <Sidebaricon onClick={onClick} label={label} icon={icon} hideTooltip={state === "expanded"} />
+    <div className={`flex w-full items-center justify-start ${className ?? ""}`}>
+      <Sidebaricon
+        onClick={onClick}
+        label={label}
+        icon={icon}
+        hideTooltip={state === "expanded"}
+        iconClassName="text-sidebar-foreground/74 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground dark:hover:bg-[color-mix(in_srgb,var(--sidebar-accent)_88%,white_12%)] dark:hover:text-white"
+      />
       <span
         onClick={onClick}
-        className={`pr-4 whitespace-nowrap overflow-hidden text-sm cursor-pointer rounded-md px-2 py-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors ${
+        className={`pr-4 whitespace-nowrap overflow-hidden text-sm cursor-pointer rounded-md px-2 py-1 transition-colors ${
+                   "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground dark:hover:bg-[color-mix(in_srgb,var(--sidebar-accent)_88%,white_12%)] dark:hover:text-white"
+        } ${
           state === "expanded"
-            ? "opacity-100 transition-opacity duration-200"
-            : "opacity-0 transition-opacity duration-200 pointer-events-none"
+            ? "max-w-[11rem] opacity-100 transition-[max-width,opacity] duration-200"
+            : "max-w-0 px-0 pr-0 opacity-0 transition-[max-width,opacity,padding] duration-200 pointer-events-none"
         }`}
       >
         {label}
@@ -63,7 +72,7 @@ export default function AppSidebar() {
   function openTrash() { navigate("/trash"); }
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" className="select-none">
       <SidebarHeader className="!p-0 mt-2">
         <div className="flex items-center justify-between pt-2">
           <Sidebaricon
@@ -111,8 +120,14 @@ export default function AppSidebar() {
           </div>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarNavItem onClick={openTrash} label="回收站" icon={Trash} state={state} className="pb-4 -translate-x-2" />
+      <SidebarFooter className="!p-0">
+        <SidebarNavItem
+          onClick={openTrash}
+          label="回收站"
+          icon={Trash}
+          state={state}
+          className="pb-4"
+        />
       </SidebarFooter>
     </Sidebar>
   )

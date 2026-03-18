@@ -29,7 +29,7 @@ export function FancySelect({ value, options, onValueChange, className }: FancyS
         <button
           type="button"
           className={cn(
-            "group flex h-11 w-full items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 text-left shadow-xs outline-none transition hover:border-primary/40 hover:bg-background focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40",
+            "group flex h-11 w-full items-center justify-between rounded-xl border border-border/75 bg-background px-3 text-left shadow-xs outline-none transition hover:border-primary/40 hover:bg-secondary/85 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40",
             className
           )}
         >
@@ -45,7 +45,7 @@ export function FancySelect({ value, options, onValueChange, className }: FancyS
         </button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-[260px] rounded-xl p-1.5">
+      <DropdownMenuContent align="end" className="w-[260px] rounded-xl border border-border/75 bg-popover/95 p-1.5 shadow-lg backdrop-blur">
         {options.map((option) => {
           const isActive = option.value === value;
 
