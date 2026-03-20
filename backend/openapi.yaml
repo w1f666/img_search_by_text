@@ -1,0 +1,2117 @@
+openapi: 3.1.0
+info:
+  title: Image Search And Duplicate Backend API
+  version: 0.1.0
+  summary: OpenAPI draft aligned with the current frontend state.
+  description: |
+    This document is a backend API contract draft for the current frontend.
+
+    Design goals:
+    - One managed library root for all images.
+    - Images can enter the library by folder scan or manual upload.
+    - Galleries are organizational groupings built on top of the library.
+    - Trash is soft-delete first, permanent delete later.
+    - Search is unified multimodal search: text and image can be sent together in the same request.
+    - Search history and topbar title use the first search text as the canonical session title.
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+
+tags:
+  - name: Library
+  - name: Images
+  - name: Galleries
+  - name: Trash
+  - name: Search
+  - name: History
+
+paths:
+  /library/config:
+    get:
+      tags: [Library]
+      summary: Get library configuration
+      operationId: getLibraryConfig
+      responses:
+        '200':
+          description: Library configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryConfigResponse'
+              example:
+                code: 0
+                message: success
+                data:
+                  library_root: /Users/demo/Pictures/all-images
+                  is_configured: true
+                  rename_rule: datetime_sequence
+                  time_source: exif_or_created_or_modified
+                  import_mode: copy
+                  auto_generate_thumbnail: true
+                  supported_extensions: [.jpg, .jpeg, .png, .webp]
+    put:
+      tags: [Library]
+      summary: Update library configuration
+      operationId: updateLibraryConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateLibraryConfigRequest'
+            example:
+              library_root: /Users/demo/Pictures/all-images
+              rename_rule: datetime_sequence
+              time_source: exif_or_created_or_modified
+              import_mode: copy
+              auto_generate_thumbnail: true
+      responses:
+        '200':
+          description: Updated library configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibraryConfigResponse'
+
+  /library/scan:
+    post:
+      tags: [Library]
+      summary: Start library scan task
+      operationId: createLibraryScanTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartScanRequest'
+            example:
+              recursive: true
+              detect_duplicates: true
+              rebuild_index: false
+              rename_on_import: true
+      responses:
+        '202':
+          description: Scan task queued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanTaskResponse'
+
+  /library/scan/tasks/{task_id}:
+    get:
+      tags: [Library]
+      summary: Get library scan task status
+      operationId: getLibraryScanTask
+      parameters:
+        - $ref: '#/components/parameters/TaskIdPath'
+      responses:
+        '200':
+          description: Scan task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanTaskDetailResponse'
+
+  /library/summary:
+    get:
+      tags: [Library]
+      summary: Get library summary
+      operationId: getLibrarySummary
+      responses:
+        '200':
+          description: Library summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LibrarySummaryResponse'
+
+  /images:
+    get:
+      tags: [Images]
+      summary: List images in the managed library
+      operationId: listImages
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/GalleryIdQuery'
+        - $ref: '#/components/parameters/StatusQuery'
+        - name: source
+          in: query
+          schema:
+            $ref: '#/components/schemas/ImageSource'
+        - $ref: '#/components/parameters/SortByImage'
+        - $ref: '#/components/parameters/SortOrder'
+      responses:
+        '200':
+          description: Paginated image list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageListResponse'
+
+  /images/import:
+    post:
+      tags: [Images]
+      summary: Import one or more images into the managed library
+      description: |
+        This endpoint supports manual add into the library root.
+        Files are copied or moved according to library config, then renamed by the chosen time rule.
+      operationId: importImages
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [files]
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                gallery_id:
+                  type: integer
+                  nullable: true
+                rename_by:
+                  type: string
+                  enum: [capture_time, created_time, modified_time]
+                  default: capture_time
+                conflict_policy:
+                  type: string
+                  enum: [auto_suffix, skip, overwrite]
+                  default: auto_suffix
+                copy_to_library:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportImagesResponse'
+
+  /images/batch:
+    patch:
+      tags: [Images]
+      summary: Batch update image gallery assignment
+      operationId: batchUpdateImages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateImagesRequest'
+            example:
+              image_ids: [101, 102, 103]
+              gallery_id: 5
+      responses:
+        '200':
+          description: Batch update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchUpdateImagesResponse'
+
+  /images/batch-delete:
+    post:
+      tags: [Images]
+      summary: Soft-delete multiple images to trash
+      operationId: batchDeleteImages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchDeleteImagesRequest'
+            example:
+              image_ids: [101, 102, 103]
+      responses:
+        '200':
+          description: Batch delete result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchDeleteImagesResponse'
+
+  /images/batch-rename:
+    post:
+      tags: [Images]
+      summary: Batch rename images by time-based rule
+      operationId: batchRenameImages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchRenameImagesRequest'
+            example:
+              image_ids: [101, 102, 103]
+              rule: datetime_sequence
+              time_source: exif_or_created_or_modified
+              dry_run: false
+      responses:
+        '200':
+          description: Batch rename result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchRenameImagesResponse'
+
+  /images/{image_id}:
+    get:
+      tags: [Images]
+      summary: Get image detail
+      operationId: getImageDetail
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: Image detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Images]
+      summary: Update a single image
+      operationId: updateImage
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateImageRequest'
+      responses:
+        '200':
+          description: Updated image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateImageResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Images]
+      summary: Move an image to trash
+      operationId: deleteImage
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: Image moved to trash
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteImageResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /images/{image_id}/rename:
+    patch:
+      tags: [Images]
+      summary: Rename a single image
+      operationId: renameImage
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameImageRequest'
+      responses:
+        '200':
+          description: Image renamed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenameImageResponse'
+
+  /galleries:
+    get:
+      tags: [Galleries]
+      summary: List galleries
+      operationId: listGalleries
+      parameters:
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/SortByGallery'
+        - $ref: '#/components/parameters/SortOrder'
+      responses:
+        '200':
+          description: Gallery list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryListResponse'
+    post:
+      tags: [Galleries]
+      summary: Create gallery
+      operationId: createGallery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGalleryRequest'
+      responses:
+        '201':
+          description: Gallery created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryDetailResponse'
+
+  /galleries/organize:
+    post:
+      tags: [Galleries]
+      summary: Organize images into galleries and auto-select cover images
+      description: |
+        Suggested place for one-click organize.
+        Gallery cover image is selected by CLIP similarity between gallery name and images inside the gallery.
+      operationId: organizeGalleries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizeGalleriesRequest'
+            example:
+              mode: clip_cluster
+              create_missing_galleries: true
+              auto_cover: true
+              cover_prompt_template: 一张最能代表“{gallery_name}”的相册封面图，主体清晰，构图完整，适合作为封面
+              prefer_landscape_cover: true
+              min_images_per_gallery: 3
+      responses:
+        '200':
+          description: Organize result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganizeGalleriesResponse'
+
+  /galleries/{gallery_id}:
+    get:
+      tags: [Galleries]
+      summary: Get gallery detail
+      operationId: getGalleryDetail
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+      responses:
+        '200':
+          description: Gallery detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Galleries]
+      summary: Update gallery
+      operationId: updateGallery
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateGalleryRequest'
+      responses:
+        '200':
+          description: Gallery updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryDetailResponse'
+    delete:
+      tags: [Galleries]
+      summary: Delete gallery and ungroup its images
+      operationId: deleteGallery
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+      responses:
+        '200':
+          description: Gallery deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteGalleryResponse'
+
+  /galleries/{gallery_id}/images:
+    get:
+      tags: [Galleries]
+      summary: List images in a gallery
+      operationId: listGalleryImages
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/SortByImage'
+        - $ref: '#/components/parameters/SortOrder'
+      responses:
+        '200':
+          description: Gallery image list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GalleryImageListResponse'
+    post:
+      tags: [Galleries]
+      summary: Add images into a gallery
+      operationId: addImagesToGallery
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddImagesToGalleryRequest'
+      responses:
+        '200':
+          description: Images added to gallery
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddImagesToGalleryResponse'
+
+  /galleries/{gallery_id}/images/{image_id}:
+    delete:
+      tags: [Galleries]
+      summary: Remove image from a gallery
+      operationId: removeImageFromGallery
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: Image removed from gallery
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RemoveImageFromGalleryResponse'
+
+  /galleries/{gallery_id}/cover:
+    post:
+      tags: [Galleries]
+      summary: Manually set gallery cover image
+      operationId: setGalleryCover
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetGalleryCoverRequest'
+      responses:
+        '200':
+          description: Cover image updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SetGalleryCoverResponse'
+
+  /galleries/{gallery_id}/cover/auto:
+    post:
+      tags: [Galleries]
+      summary: Automatically choose gallery cover by CLIP similarity to gallery name
+      operationId: autoSetGalleryCover
+      parameters:
+        - $ref: '#/components/parameters/GalleryIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AutoSetGalleryCoverRequest'
+      responses:
+        '200':
+          description: Auto-selected cover image
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AutoSetGalleryCoverResponse'
+
+  /trash/images:
+    get:
+      tags: [Trash]
+      summary: List trashed images
+      operationId: listTrashImages
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+            enum: [deleted_at, shot_at, imported_at]
+            default: deleted_at
+        - $ref: '#/components/parameters/SortOrder'
+      responses:
+        '200':
+          description: Trashed image list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrashImageListResponse'
+    delete:
+      tags: [Trash]
+      summary: Clear the trash
+      operationId: clearTrash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClearTrashRequest'
+            example:
+              confirm: true
+      responses:
+        '200':
+          description: Trash cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClearTrashResponse'
+
+  /trash/images/{image_id}/restore:
+    post:
+      tags: [Trash]
+      summary: Restore a trashed image
+      operationId: restoreTrashImage
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: Image restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RestoreTrashImageResponse'
+
+  /trash/images/{image_id}/permanent:
+    delete:
+      tags: [Trash]
+      summary: Permanently delete a trashed image
+      operationId: permanentlyDeleteTrashImage
+      parameters:
+        - $ref: '#/components/parameters/ImageIdPath'
+      responses:
+        '200':
+          description: Image permanently deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PermanentDeleteTrashImageResponse'
+
+  /search/sessions:
+    post:
+      tags: [Search]
+      summary: Create a multimodal search session and execute the first turn
+      description: |
+        Unified search entry.
+        The client may send text_query, reference_image, or both in the same request.
+        The first text_query becomes the canonical session title for topbar and history.
+      operationId: createSearchSession
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                text_query:
+                  type: string
+                  nullable: true
+                reference_image:
+                  type: string
+                  format: binary
+                  nullable: true
+                top_k:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 24
+                image_weight:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  default: 0.7
+                text_weight:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  default: 0.3
+            encoding:
+              reference_image:
+                contentType: image/*
+      responses:
+        '200':
+          description: Search session created and first turn executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchTurnResponse'
+              example:
+                code: 0
+                message: search session created
+                data:
+                  session:
+                    session_id: search_session_001
+                    title: 海边夕阳 橙红天空 倒影
+                    initial_query: 海边夕阳 橙红天空 倒影
+                    created_at: '2026-03-15T14:45:00'
+                  turn:
+                    turn_id: turn_001
+                    text_query: 海边夕阳 橙红天空 倒影
+                    refinement_query: null
+                    effective_query: 海边夕阳 橙红天空 倒影
+                    reference_image_url: null
+                    top_k: 24
+                    result_count: 24
+                    items:
+                      - image_id: 101
+                        thumbnail_url: /static/thumbnails/20260312_183021_0001.webp
+                        gallery_name: 风景
+                        score: 0.8472
+
+  /search/sessions/{session_id}:
+    get:
+      tags: [Search]
+      summary: Get a search session and all turns
+      operationId: getSearchSession
+      parameters:
+        - $ref: '#/components/parameters/SearchSessionIdPath'
+      responses:
+        '200':
+          description: Search session detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchSessionDetailResponse'
+
+  /search/sessions/{session_id}/turns:
+    post:
+      tags: [Search]
+      summary: Execute another multimodal turn in an existing search session
+      description: |
+        Use this endpoint for iterative search.
+        The client may append text refinement, upload a new reference image, or do both.
+        Session title and history title remain based on the first text query from session creation.
+      operationId: createSearchTurn
+      parameters:
+        - $ref: '#/components/parameters/SearchSessionIdPath'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                text_query:
+                  type: string
+                  nullable: true
+                  description: Additional refinement text appended to the existing search context.
+                reference_image:
+                  type: string
+                  format: binary
+                  nullable: true
+                  description: Optional new reference image for iterative image search.
+                top_k:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 24
+                image_weight:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  default: 0.7
+                text_weight:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  default: 0.3
+      responses:
+        '200':
+          description: New search turn executed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchTurnResponse'
+
+  /history:
+    get:
+      tags: [History]
+      summary: List search history items
+      operationId: listHistory
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+      responses:
+        '200':
+          description: History list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryListResponse'
+    delete:
+      tags: [History]
+      summary: Clear all history items
+      operationId: clearHistory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClearHistoryRequest'
+            example:
+              confirm: true
+      responses:
+        '200':
+          description: History cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClearHistoryResponse'
+
+  /history/{history_id}:
+    get:
+      tags: [History]
+      summary: Get a history item detail
+      operationId: getHistoryDetail
+      parameters:
+        - $ref: '#/components/parameters/HistoryIdPath'
+      responses:
+        '200':
+          description: History detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryDetailResponse'
+    delete:
+      tags: [History]
+      summary: Delete one history item
+      operationId: deleteHistoryItem
+      parameters:
+        - $ref: '#/components/parameters/HistoryIdPath'
+      responses:
+        '200':
+          description: History item deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteHistoryResponse'
+
+components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 60
+    Keyword:
+      name: keyword
+      in: query
+      schema:
+        type: string
+    GalleryIdQuery:
+      name: gallery_id
+      in: query
+      schema:
+        type: integer
+        nullable: true
+    StatusQuery:
+      name: status
+      in: query
+      schema:
+        $ref: '#/components/schemas/ImageStatus'
+    SortOrder:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+    SortByImage:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        enum: [shot_at, imported_at, filename_display, size_bytes]
+        default: shot_at
+    SortByGallery:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        enum: [created_at, name, image_count]
+        default: created_at
+    TaskIdPath:
+      name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+    ImageIdPath:
+      name: image_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    GalleryIdPath:
+      name: gallery_id
+      in: path
+      required: true
+      schema:
+        type: integer
+    SearchSessionIdPath:
+      name: session_id
+      in: path
+      required: true
+      schema:
+        type: string
+    HistoryIdPath:
+      name: history_id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: 4040
+            message: resource not found
+            data: null
+
+  schemas:
+    EmptyData:
+      type: object
+      additionalProperties: false
+
+    ErrorResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: 'null'
+
+    ImageSource:
+      type: string
+      enum: [library_scan, manual_add, api_import, generated]
+
+    ImageStatus:
+      type: string
+      enum: [active, trash]
+
+    Pagination:
+      type: object
+      required: [page, page_size, total, total_pages]
+      properties:
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total:
+          type: integer
+        total_pages:
+          type: integer
+
+    LibraryConfig:
+      type: object
+      required:
+        - library_root
+        - is_configured
+        - rename_rule
+        - time_source
+        - import_mode
+        - auto_generate_thumbnail
+        - supported_extensions
+      properties:
+        library_root:
+          type: string
+        is_configured:
+          type: boolean
+        rename_rule:
+          type: string
+          enum: [datetime_sequence]
+        time_source:
+          type: string
+          enum: [exif_or_created_or_modified, created_only, modified_only]
+        import_mode:
+          type: string
+          enum: [copy, move, reference_only]
+        auto_generate_thumbnail:
+          type: boolean
+        supported_extensions:
+          type: array
+          items:
+            type: string
+
+    UpdateLibraryConfigRequest:
+      type: object
+      required: [library_root, rename_rule, time_source, import_mode, auto_generate_thumbnail]
+      properties:
+        library_root:
+          type: string
+        rename_rule:
+          type: string
+          enum: [datetime_sequence]
+        time_source:
+          type: string
+          enum: [exif_or_created_or_modified, created_only, modified_only]
+        import_mode:
+          type: string
+          enum: [copy, move, reference_only]
+        auto_generate_thumbnail:
+          type: boolean
+
+    StartScanRequest:
+      type: object
+      required: [recursive, detect_duplicates, rebuild_index, rename_on_import]
+      properties:
+        recursive:
+          type: boolean
+        detect_duplicates:
+          type: boolean
+        rebuild_index:
+          type: boolean
+        rename_on_import:
+          type: boolean
+
+    ScanTask:
+      type: object
+      required: [task_id, status]
+      properties:
+        task_id:
+          type: string
+        status:
+          type: string
+          enum: [queued, running, completed, failed]
+
+    ScanTaskDetail:
+      allOf:
+        - $ref: '#/components/schemas/ScanTask'
+        - type: object
+          required: [progress, processed_count, added_count, duplicate_count, failed_count, started_at]
+          properties:
+            progress:
+              type: integer
+            processed_count:
+              type: integer
+            added_count:
+              type: integer
+            duplicate_count:
+              type: integer
+            failed_count:
+              type: integer
+            started_at:
+              type: string
+              format: date-time
+            finished_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    LibrarySummary:
+      type: object
+      required: [total_images, active_images, trash_images, gallery_count, ungrouped_images, history_count, last_scan_at]
+      properties:
+        total_images:
+          type: integer
+        active_images:
+          type: integer
+        trash_images:
+          type: integer
+        gallery_count:
+          type: integer
+        ungrouped_images:
+          type: integer
+        history_count:
+          type: integer
+        last_scan_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ImageSummary:
+      type: object
+      required:
+        - id
+        - filename_original
+        - filename_display
+        - stored_filename
+        - url
+        - thumbnail_url
+        - size_bytes
+        - size_label
+        - width
+        - height
+        - mime_type
+        - source
+        - gallery_id
+        - gallery_name
+        - status
+        - shot_at
+        - imported_at
+        - deleted_at
+      properties:
+        id:
+          type: integer
+        filename_original:
+          type: string
+        filename_display:
+          type: string
+        stored_filename:
+          type: string
+        url:
+          type: string
+        thumbnail_url:
+          type: string
+        size_bytes:
+          type: integer
+        size_label:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        mime_type:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImageSource'
+        gallery_id:
+          type: integer
+          nullable: true
+        gallery_name:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ImageStatus'
+        shot_at:
+          type: string
+          format: date-time
+          nullable: true
+        imported_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ImageDetail:
+      allOf:
+        - $ref: '#/components/schemas/ImageSummary'
+        - type: object
+          required: [relative_path, md5, phash, created_at, updated_at, exif]
+          properties:
+            relative_path:
+              type: string
+            md5:
+              type: string
+            phash:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            exif:
+              type: object
+              additionalProperties: true
+
+    UpdateImageRequest:
+      type: object
+      properties:
+        gallery_id:
+          type: integer
+          nullable: true
+        filename_display:
+          type: string
+
+    RenameImageRequest:
+      type: object
+      required: [filename_display]
+      properties:
+        filename_display:
+          type: string
+
+    BatchUpdateImagesRequest:
+      type: object
+      required: [image_ids]
+      properties:
+        image_ids:
+          type: array
+          items:
+            type: integer
+        gallery_id:
+          type: integer
+          nullable: true
+
+    BatchDeleteImagesRequest:
+      type: object
+      required: [image_ids]
+      properties:
+        image_ids:
+          type: array
+          items:
+            type: integer
+
+    BatchRenameImagesRequest:
+      type: object
+      required: [image_ids, rule, time_source, dry_run]
+      properties:
+        image_ids:
+          type: array
+          items:
+            type: integer
+        rule:
+          type: string
+          enum: [datetime_sequence]
+        time_source:
+          type: string
+          enum: [exif_or_created_or_modified, created_only, modified_only]
+        dry_run:
+          type: boolean
+
+    ImportedImage:
+      type: object
+      required: [id, filename_original, filename_display, url, thumbnail_url, source, gallery_id, status, shot_at, imported_at]
+      properties:
+        id:
+          type: integer
+        filename_original:
+          type: string
+        filename_display:
+          type: string
+        url:
+          type: string
+        thumbnail_url:
+          type: string
+        source:
+          $ref: '#/components/schemas/ImageSource'
+        gallery_id:
+          type: integer
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ImageStatus'
+        shot_at:
+          type: string
+          format: date-time
+          nullable: true
+        imported_at:
+          type: string
+          format: date-time
+
+    ImportDuplicate:
+      type: object
+      required: [filename_original, duplicate_image_id, reason]
+      properties:
+        filename_original:
+          type: string
+        duplicate_image_id:
+          type: integer
+        reason:
+          type: string
+
+    GallerySummary:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - cover_image_id
+        - cover_image_url
+        - cover_strategy
+        - image_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        cover_image_id:
+          type: integer
+          nullable: true
+        cover_image_url:
+          type: string
+          nullable: true
+        cover_strategy:
+          type: string
+          enum: [manual, clip_auto, none]
+        image_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateGalleryRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    UpdateGalleryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    AddImagesToGalleryRequest:
+      type: object
+      required: [image_ids]
+      properties:
+        image_ids:
+          type: array
+          items:
+            type: integer
+
+    SetGalleryCoverRequest:
+      type: object
+      required: [image_id]
+      properties:
+        image_id:
+          type: integer
+
+    AutoSetGalleryCoverRequest:
+      type: object
+      required: [prompt_template, prefer_landscape, rerank_by_quality]
+      properties:
+        prompt_template:
+          type: string
+        prefer_landscape:
+          type: boolean
+        rerank_by_quality:
+          type: boolean
+
+    OrganizeGalleriesRequest:
+      type: object
+      required:
+        - mode
+        - create_missing_galleries
+        - auto_cover
+        - cover_prompt_template
+        - prefer_landscape_cover
+        - min_images_per_gallery
+      properties:
+        mode:
+          type: string
+          enum: [clip_cluster, clip_labeling]
+        create_missing_galleries:
+          type: boolean
+        auto_cover:
+          type: boolean
+        cover_prompt_template:
+          type: string
+        prefer_landscape_cover:
+          type: boolean
+        min_images_per_gallery:
+          type: integer
+
+    CoverCandidate:
+      type: object
+      required: [image_id, clip_score]
+      properties:
+        image_id:
+          type: integer
+        clip_score:
+          type: number
+          format: float
+
+    OrganizeGalleryResult:
+      type: object
+      required: [gallery_id, gallery_name, image_count, cover_image_id, cover_strategy]
+      properties:
+        gallery_id:
+          type: integer
+        gallery_name:
+          type: string
+        image_count:
+          type: integer
+        cover_image_id:
+          type: integer
+          nullable: true
+        cover_strategy:
+          type: string
+
+    SearchSessionSummary:
+      type: object
+      required: [session_id, title, initial_query, created_at]
+      properties:
+        session_id:
+          type: string
+        title:
+          type: string
+          nullable: true
+        initial_query:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    SearchResultItem:
+      type: object
+      required: [image_id, thumbnail_url, gallery_name, score]
+      properties:
+        image_id:
+          type: integer
+        thumbnail_url:
+          type: string
+        gallery_name:
+          type: string
+          nullable: true
+        score:
+          type: number
+          format: float
+
+    SearchTurn:
+      type: object
+      required:
+        - turn_id
+        - text_query
+        - refinement_query
+        - effective_query
+        - reference_image_url
+        - top_k
+        - result_count
+        - items
+      properties:
+        turn_id:
+          type: string
+        text_query:
+          type: string
+          nullable: true
+        refinement_query:
+          type: string
+          nullable: true
+        effective_query:
+          type: string
+          nullable: true
+        reference_image_url:
+          type: string
+          nullable: true
+        top_k:
+          type: integer
+        result_count:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResultItem'
+
+    SearchSessionDetail:
+      allOf:
+        - $ref: '#/components/schemas/SearchSessionSummary'
+        - type: object
+          required: [turns]
+          properties:
+            turns:
+              type: array
+              items:
+                type: object
+                required: [turn_id, query, result_count, created_at]
+                properties:
+                  turn_id:
+                    type: string
+                  query:
+                    type: string
+                    nullable: true
+                  result_count:
+                    type: integer
+                  created_at:
+                    type: string
+                    format: date-time
+
+    HistoryItem:
+      type: object
+      required:
+        - id
+        - session_id
+        - title
+        - initial_query
+        - summary
+        - result_count
+        - created_at
+        - last_turn_at
+      properties:
+        id:
+          type: string
+        session_id:
+          type: string
+        title:
+          type: string
+          nullable: true
+        initial_query:
+          type: string
+          nullable: true
+        summary:
+          type: string
+        result_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        last_turn_at:
+          type: string
+          format: date-time
+
+    HistoryTurn:
+      type: object
+      required: [turn_id, query, effective_query, result_count]
+      properties:
+        turn_id:
+          type: string
+        query:
+          type: string
+          nullable: true
+        effective_query:
+          type: string
+          nullable: true
+        result_count:
+          type: integer
+
+    ClearTrashRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+
+    ClearHistoryRequest:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+
+    LibraryConfigResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/LibraryConfig'
+
+    ScanTaskResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ScanTask'
+
+    ScanTaskDetailResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ScanTaskDetail'
+
+    LibrarySummaryResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/LibrarySummary'
+
+    ImageListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [items, pagination]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImageSummary'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    ImageDetailResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ImageDetail'
+
+    ImportImagesResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [added_count, duplicate_count, items, duplicates]
+          properties:
+            added_count:
+              type: integer
+            duplicate_count:
+              type: integer
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImportedImage'
+            duplicates:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImportDuplicate'
+
+    UpdateImageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+
+    DeleteImageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [id, status, deleted_at]
+          properties:
+            id:
+              type: integer
+            status:
+              $ref: '#/components/schemas/ImageStatus'
+            deleted_at:
+              type: string
+              format: date-time
+
+    RenameImageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [id, filename_original, filename_display, url]
+          properties:
+            id:
+              type: integer
+            filename_original:
+              type: string
+            filename_display:
+              type: string
+            url:
+              type: string
+
+    BatchUpdateImagesResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [updated_count, image_ids, gallery_id]
+          properties:
+            updated_count:
+              type: integer
+            image_ids:
+              type: array
+              items:
+                type: integer
+            gallery_id:
+              type: integer
+              nullable: true
+
+    BatchDeleteImagesResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [deleted_count, image_ids]
+          properties:
+            deleted_count:
+              type: integer
+            image_ids:
+              type: array
+              items:
+                type: integer
+
+    BatchRenameImagesResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [renamed_count, items]
+          properties:
+            renamed_count:
+              type: integer
+            items:
+              type: array
+              items:
+                type: object
+                required: [id, old_filename_display, new_filename_display]
+                properties:
+                  id:
+                    type: integer
+                  old_filename_display:
+                    type: string
+                  new_filename_display:
+                    type: string
+
+    GalleryListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/GallerySummary'
+
+    GalleryDetailResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/GallerySummary'
+
+    DeleteGalleryResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [id, moved_images_to_ungrouped_count]
+          properties:
+            id:
+              type: integer
+            moved_images_to_ungrouped_count:
+              type: integer
+
+    GalleryImageListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [gallery, items, pagination]
+          properties:
+            gallery:
+              type: object
+              required: [id, name, description]
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                description:
+                  type: string
+                  nullable: true
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImageSummary'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    AddImagesToGalleryResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [gallery_id, added_count, image_ids]
+          properties:
+            gallery_id:
+              type: integer
+            added_count:
+              type: integer
+            image_ids:
+              type: array
+              items:
+                type: integer
+
+    RemoveImageFromGalleryResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [gallery_id, image_id]
+          properties:
+            gallery_id:
+              type: integer
+            image_id:
+              type: integer
+
+    SetGalleryCoverResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [gallery_id, cover_image_id, cover_image_url, cover_strategy]
+          properties:
+            gallery_id:
+              type: integer
+            cover_image_id:
+              type: integer
+              nullable: true
+            cover_image_url:
+              type: string
+              nullable: true
+            cover_strategy:
+              type: string
+
+    AutoSetGalleryCoverResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [gallery_id, gallery_name, cover_image_id, cover_image_url, cover_strategy, clip_score, top_candidates]
+          properties:
+            gallery_id:
+              type: integer
+            gallery_name:
+              type: string
+            cover_image_id:
+              type: integer
+              nullable: true
+            cover_image_url:
+              type: string
+              nullable: true
+            cover_strategy:
+              type: string
+            clip_score:
+              type: number
+              format: float
+            top_candidates:
+              type: array
+              items:
+                $ref: '#/components/schemas/CoverCandidate'
+
+    OrganizeGalleriesResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [created_gallery_count, updated_gallery_count, assigned_image_count, galleries]
+          properties:
+            created_gallery_count:
+              type: integer
+            updated_gallery_count:
+              type: integer
+            assigned_image_count:
+              type: integer
+            galleries:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrganizeGalleryResult'
+
+    TrashImageListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [items, pagination]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ImageSummary'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    RestoreTrashImageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [id, status, deleted_at]
+          properties:
+            id:
+              type: integer
+            status:
+              $ref: '#/components/schemas/ImageStatus'
+            deleted_at:
+              type: string
+              format: date-time
+              nullable: true
+
+    PermanentDeleteTrashImageResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+
+    ClearTrashResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [deleted_count]
+          properties:
+            deleted_count:
+              type: integer
+
+    SearchTurnResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [session, turn]
+          properties:
+            session:
+              $ref: '#/components/schemas/SearchSessionSummary'
+            turn:
+              $ref: '#/components/schemas/SearchTurn'
+
+    SearchSessionDetailResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/SearchSessionDetail'
+
+    HistoryListResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [items, pagination]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/HistoryItem'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    HistoryDetailResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: '#/components/schemas/HistoryItem'
+            - type: object
+              required: [turns]
+              properties:
+                turns:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/HistoryTurn'
+
+    DeleteHistoryResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [id]
+          properties:
+            id:
+              type: string
+
+    ClearHistoryResponse:
+      type: object
+      required: [code, message, data]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          required: [deleted_count]
+          properties:
+            deleted_count:
+              type: integer

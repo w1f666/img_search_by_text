@@ -1,156 +1,29 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>图像搜索与管理系统</title>
-    <link rel="stylesheet" href="style.css">
-    <script type="importmap">
-        {
-            "imports": {
-                "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
-            }
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+    <!-- inline theme init: make sure the correct class and background are applied before React mounts -->
+    <script>
+      (function () {
+        const storageKey = 'vite-ui-theme';
+        const defaultTheme = 'system';
+        let theme = localStorage.getItem(storageKey) || defaultTheme;
+        if (theme === 'system') {
+          const mql = window.matchMedia('(prefers-color-scheme: dark)');
+          theme = mql.matches ? 'dark' : 'light';
         }
+        // apply class for tailwind selectors
+        document.documentElement.classList.add(theme);
+        // set an explicit background color to prevent initial white flash
+        const bg = theme === 'dark' ? 'oklch(63.343% 0.00007 271.152)' : 'oklch(86.148% 0.00108 12.173)';
+        document.documentElement.style.backgroundColor = bg;
+      })();
     </script>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-</head>
-<body>
-    <div id="app" v-cloak>
-        <header>
-            <h1>图像搜索与管理演示</h1>
-        </header>
-
-        <main>
-            <!-- 导航标签 -->
-            <div class="tabs">
-                <button 
-                    :class="{ active: currentTab === 'search' }" 
-                    @click="currentTab = 'search'">
-                    图像搜索
-                </button>
-                <button 
-                    :class="{ active: currentTab === 'management' }" 
-                    @click="currentTab = 'management'">
-                    图像管理
-                </button>
-            </div>
-
-            <!-- 搜索界面 -->
-            <div v-if="currentTab === 'search'" class="tab-content">
-                <div class="search-controls">
-                    <div class="search-type">
-                        <label>
-                            <input type="radio" v-model="searchType" value="text"> 文本搜索
-                        </label>
-                        <label>
-                            <input type="radio" v-model="searchType" value="image"> 图片搜索
-                        </label>
-                    </div>
-
-                    <!-- 文本搜索输入 -->
-                    <div v-if="searchType === 'text'" class="input-group">
-                        <input 
-                            type="text" 
-                            v-model="searchQuery" 
-                            placeholder="请输入搜索描述 (例如: '一只在草地上的狗')"
-                            @keyup.enter="performSearch"
-                        >
-                    </div>
-
-                    <!-- 图片搜索输入 -->
-                    <div v-if="searchType === 'image'" class="input-group">
-                        <input 
-                            type="file" 
-                            ref="fileInput" 
-                            accept="image/*"
-                            @change="handleFileSelect"
-                        >
-                    </div>
-
-                    <div class="input-group">
-                        <label>返回数量 (Top K):</label>
-                        <input type="number" v-model.number="topK" min="1" max="20">
-                    </div>
-
-                    <button @click="performSearch" :disabled="loading" class="primary-btn">
-                        {{ loading ? '搜索中...' : '开始搜索' }}
-                    </button>
-                </div>
-
-                <!-- 搜索结果展示 -->
-                <div class="results-section">
-                    <h3>搜索结果</h3>
-                    <div v-if="searchResults.length === 0 && !loading && searched" class="no-results">
-                        未找到相关结果
-                    </div>
-                    <div class="results-grid">
-                        <div v-for="(item, index) in searchResults" :key="index" class="result-card">
-                            <div class="image-preview">
-                                <!-- 注意：由于浏览器安全限制，直接显示本地绝对路径的图片通常会被拦截。
-                                     这里尝试显示，如果后端没有静态文件服务，可能无法加载图片。 -->
-                                <img :src="getImageUrl(item.image_url.file_path)" :alt="item.image_url.file_path" @error="handleImageError">
-                                <div class="fallback-text" v-if="item.image_load_error">
-                                    无法加载预览<br>
-                                    <small>{{ item.image_url.file_path }}</small>
-                                </div>
-                            </div>
-                            <div class="result-info">
-                                <p><strong>ID:</strong> {{ item.image_id }}</p>
-                                <p><strong>距离:</strong> {{ item.distance.toFixed(4) }}</p>
-                                <p class="path" :title="item.image_url.file_path">
-                                    {{ item.image_url.file_path }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 管理界面 -->
-            <div v-if="currentTab === 'management'" class="tab-content">
-                <div class="management-panel">
-                    <h3>添加图片到数据库</h3>
-                    <p class="hint">请输入本地图片的绝对路径，每行一个。</p>
-                    <textarea 
-                        v-model="imagePathsInput" 
-                        rows="10" 
-                        placeholder="D:\photos\image1.jpg&#10;D:\photos\image2.jpg"
-                    ></textarea>
-                    
-                    <button @click="addImages" :disabled="loading" class="primary-btn">
-                        {{ loading ? '处理中...' : '批量添加' }}
-                    </button>
-
-                    <!-- 添加结果反馈 -->
-                    <div v-if="addResult" class="add-result">
-                        <div v-if="addResult.added_images.length > 0" class="success">
-                            <h4>成功添加: {{ addResult.added_images.length }}</h4>
-                            <ul>
-                                <li v-for="img in addResult.added_images" :key="img.id">
-                                    ID: {{ img.id }} - {{ img.file_path }}
-                                </li>
-                            </ul>
-                        </div>
-                        <div v-if="addResult.duplicate_images.length > 0" class="warning">
-                            <h4>重复图片 (跳过): {{ addResult.duplicate_images.length }}</h4>
-                            <ul>
-                                <li v-for="path in addResult.duplicate_images" :key="path">
-                                    {{ path }}
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-
-        <!-- 错误提示 -->
-        <div v-if="errorMessage" class="error-toast">
-            {{ errorMessage }}
-            <button @click="errorMessage = ''">×</button>
-        </div>
-    </div>
-
-    <script type="module" src="app.js"></script>
-</body>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
