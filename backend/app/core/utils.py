@@ -48,8 +48,6 @@ async def phash_check(phash:str) -> List[int] :
             
             target_obj = imagehash.hex_to_hash(phash)
             
-            print(candidates)
-            
             for img_id, candidate_phash in candidates:
                 
                 #完全匹配的无需计算汉明距离

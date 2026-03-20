@@ -87,6 +87,7 @@ async def delete_gallery(gallery_id: int) -> bool:
     :return: 是否删除成功
     """
     if gallery_id == RECYCLE_GALLERY_ID:
+        logger.warning("Attempt to delete the Recycle Bin gallery is not allowed.")
         return False
 
     gallery = await Gallery.get_or_none(id=gallery_id, is_deleted=False)

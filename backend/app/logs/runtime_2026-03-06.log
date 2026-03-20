@@ -1,0 +1,185 @@
+2026-03-06 12:09:16.242 | INFO     | app.core.db_handler.gallery_handler:create_gallery:31 - Gallery created successfully: ID=4, Name=test2
+2026-03-06 12:11:57.536 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:211 - Image ID 1 added to Gallery ID 4 successfully.
+2026-03-06 12:11:57.543 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:211 - Image ID 2 added to Gallery ID 4 successfully.
+2026-03-06 12:11:57.550 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:211 - Image ID 3 added to Gallery ID 4 successfully.
+2026-03-06 12:11:57.554 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:211 - Image ID 4 added to Gallery ID 4 successfully.
+2026-03-06 12:11:57.558 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:211 - Image ID 5 added to Gallery ID 4 successfully.
+2026-03-06 12:11:57.561 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:211 - Image ID 6 added to Gallery ID 4 successfully.
+2026-03-06 12:11:57.564 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:216 - Gallery ID 4 image count updated to 6.
+2026-03-06 12:24:20.910 | INFO     | app.core.clip_handler:__init__:35 - CLIP instance created. Device: cuda (Model not loaded yet)
+2026-03-06 12:24:27.614 | INFO     | app.core.clip_handler:_ensure_model_loaded:52 - CLIP model loaded successfully.
+2026-03-06 12:24:28.152 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985840-0363.jpg - Adding image to database...
+2026-03-06 12:24:28.154 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [5]
+2026-03-06 12:24:28.155 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [5]
+2026-03-06 12:24:28.316 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 3.5762786865234375e-07
+2026-03-06 12:24:28.317 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.3055691719055176
+2026-03-06 12:24:28.317 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.329695463180542
+2026-03-06 12:24:28.317 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.3369741439819336
+2026-03-06 12:24:28.317 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 0.4139450788497925
+2026-03-06 12:24:28.396 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985858-0590.jpg - Adding image to database...
+2026-03-06 12:24:28.399 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [6]
+2026-03-06 12:24:28.399 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [6]
+2026-03-06 12:24:28.404 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 3.5762786865234375e-07
+2026-03-06 12:24:28.405 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.35546875
+2026-03-06 12:24:28.405 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.408175528049469
+2026-03-06 12:24:28.405 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4139450788497925
+2026-03-06 12:24:28.405 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.4198108911514282
+2026-03-06 12:24:28.487 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985862-0576.jpg - Adding image to database...
+2026-03-06 12:24:28.490 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [7]
+2026-03-06 12:24:28.492 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [7]
+2026-03-06 12:24:28.497 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 7 score 8.940696716308594e-07
+2026-03-06 12:24:28.556 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985865-0144.jpg - Adding image to database...
+2026-03-06 12:24:28.557 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [8]
+2026-03-06 12:24:28.559 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [8]
+2026-03-06 12:24:28.564 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 9.5367431640625e-07
+2026-03-06 12:24:28.564 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.3086610436439514
+2026-03-06 12:24:28.565 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.4145675301551819
+2026-03-06 12:24:28.566 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.4512477517127991
+2026-03-06 12:24:28.568 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4854428768157959
+2026-03-06 12:24:28.632 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985887-0789.jpg - Adding image to database...
+2026-03-06 12:24:28.634 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [9]
+2026-03-06 12:24:28.635 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [9]
+2026-03-06 12:24:28.639 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 9 score 1.7881393432617188e-07
+2026-03-06 12:24:28.640 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.3903919458389282
+2026-03-06 12:24:28.640 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.41693824529647827
+2026-03-06 12:24:28.640 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.42507410049438477
+2026-03-06 12:24:28.641 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.44925379753112793
+2026-03-06 12:24:28.724 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985928-0969.jpg - Adding image to database...
+2026-03-06 12:24:28.726 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [10]
+2026-03-06 12:24:28.727 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [10]
+2026-03-06 12:24:28.731 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 10 score 6.556510925292969e-07
+2026-03-06 12:24:28.731 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.4272216558456421
+2026-03-06 12:24:28.732 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.46124303340911865
+2026-03-06 12:24:28.732 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.46852099895477295
+2026-03-06 12:24:28.732 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.4872952103614807
+2026-03-06 12:24:28.786 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239.jpg - Adding image to database...
+2026-03-06 12:24:28.788 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [11]
+2026-03-06 12:24:28.789 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [11]
+2026-03-06 12:24:28.795 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 2.384185791015625e-07
+2026-03-06 12:24:28.795 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.4197624921798706
+2026-03-06 12:24:28.795 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4355117082595825
+2026-03-06 12:24:28.796 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.4377736449241638
+2026-03-06 12:24:28.796 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.44170081615448
+2026-03-06 12:24:28.871 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986005-0409.jpg - Adding image to database...
+2026-03-06 12:24:28.872 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [12]
+2026-03-06 12:24:28.874 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [12]
+2026-03-06 12:24:28.877 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.0
+2026-03-06 12:24:28.878 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.4197624921798706
+2026-03-06 12:24:28.878 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.44375914335250854
+2026-03-06 12:24:28.878 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.4487524628639221
+2026-03-06 12:24:28.878 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4642035961151123
+2026-03-06 12:24:28.954 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986073-0574.jpg - Adding image to database...
+2026-03-06 12:24:28.956 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [13]
+2026-03-06 12:24:28.957 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [13]
+2026-03-06 12:24:28.961 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 13 score 5.364418029785156e-07
+2026-03-06 12:24:28.961 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.39589041471481323
+2026-03-06 12:24:28.961 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.40346622467041016
+2026-03-06 12:24:28.962 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.419397234916687
+2026-03-06 12:24:28.962 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 0.4875345826148987
+2026-03-06 12:24:29.054 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986114-0751.jpg - Adding image to database...
+2026-03-06 12:24:29.055 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [14]
+2026-03-06 12:24:29.057 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [14]
+2026-03-06 12:24:29.062 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 14 score 5.960464477539062e-07
+2026-03-06 12:24:29.062 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4340389370918274
+2026-03-06 12:24:29.062 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 0.44976550340652466
+2026-03-06 12:24:29.063 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.4611068367958069
+2026-03-06 12:24:29.063 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.4807802438735962
+2026-03-06 12:24:29.169 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986211-0228.jpg - Adding image to database...
+2026-03-06 12:24:29.172 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [15]
+2026-03-06 12:24:29.173 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [15]
+2026-03-06 12:24:29.178 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 4.76837158203125e-07
+2026-03-06 12:24:29.178 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 0.35546875
+2026-03-06 12:24:29.178 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.3962286710739136
+2026-03-06 12:24:29.179 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 2 score 0.40048426389694214
+2026-03-06 12:24:29.179 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 18 score 0.41565239429473877
+2026-03-06 12:24:29.235 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986239-0478.jpg - Adding image to database...
+2026-03-06 12:24:29.237 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [16]
+2026-03-06 12:24:29.239 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [16]
+2026-03-06 12:24:29.244 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 8.344650268554688e-07
+2026-03-06 12:24:29.244 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.3055691719055176
+2026-03-06 12:24:29.244 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.33498334884643555
+2026-03-06 12:24:29.245 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.3802230954170227
+2026-03-06 12:24:29.245 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 13 score 0.39589041471481323
+2026-03-06 12:24:29.312 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986243-0793.jpg - Adding image to database...
+2026-03-06 12:24:29.314 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [17]
+2026-03-06 12:24:29.315 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [17]
+2026-03-06 12:24:29.318 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 3.5762786865234375e-07
+2026-03-06 12:24:29.319 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.31862103939056396
+2026-03-06 12:24:29.319 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.329695463180542
+2026-03-06 12:24:29.320 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.3802230954170227
+2026-03-06 12:24:29.320 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 0.4198108911514282
+2026-03-06 12:24:29.385 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986284-0452.jpg - Adding image to database...
+2026-03-06 12:24:29.387 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [18]
+2026-03-06 12:24:29.388 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [18]
+2026-03-06 12:24:29.393 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 18 score 1.1920928955078125e-07
+2026-03-06 12:24:29.394 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.41565239429473877
+2026-03-06 12:24:29.394 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.44819819927215576
+2026-03-06 12:24:29.394 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4490762948989868
+2026-03-06 12:24:29.395 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.4530397057533264
+2026-03-06 12:24:29.457 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986315-0434.jpg - Adding image to database...
+2026-03-06 12:24:29.459 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [19]
+2026-03-06 12:24:29.461 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [19]
+2026-03-06 12:24:29.465 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 8.344650268554688e-07
+2026-03-06 12:24:29.465 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 0.30866116285324097
+2026-03-06 12:24:29.466 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.41503459215164185
+2026-03-06 12:24:29.466 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.41995203495025635
+2026-03-06 12:24:29.466 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 10 score 0.42722171545028687
+2026-03-06 12:24:29.548 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986390-0470.jpg - Adding image to database...
+2026-03-06 12:24:29.550 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [20]
+2026-03-06 12:24:29.551 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [20]
+2026-03-06 12:24:29.555 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 5.960464477539063e-08
+2026-03-06 12:24:29.556 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.39023417234420776
+2026-03-06 12:24:29.556 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.4199519753456116
+2026-03-06 12:24:29.556 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4306102395057678
+2026-03-06 12:24:29.557 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.44170081615448
+2026-03-06 12:24:29.624 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986403-0741.jpg - Adding image to database...
+2026-03-06 12:24:29.627 | INFO     | app.core.utils:duplicate_check:129 - Duplicate detected by MD5: [21]
+2026-03-06 12:24:29.627 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [21]
+2026-03-06 12:24:29.632 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 2.384185791015625e-07
+2026-03-06 12:24:29.632 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.31862103939056396
+2026-03-06 12:24:29.633 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.33498334884643555
+2026-03-06 12:24:29.633 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.3369740843772888
+2026-03-06 12:24:29.633 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 9 score 0.39039188623428345
+2026-03-06 12:24:29.749 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\image.png - Adding image to database...
+2026-03-06 12:24:29.755 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.09687727689743042
+2026-03-06 12:24:29.757 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.41169875860214233
+2026-03-06 12:24:29.757 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.4468182325363159
+2026-03-06 12:24:29.757 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 0.4529799818992615
+2026-03-06 12:24:29.758 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.46210670471191406
+2026-03-06 12:24:29.904 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\image(1).png - Adding image to database...
+2026-03-06 12:24:29.910 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.11499953269958496
+2026-03-06 12:24:29.910 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.40950363874435425
+2026-03-06 12:24:29.910 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 0.4481464624404907
+2026-03-06 12:24:29.912 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.4540146589279175
+2026-03-06 12:24:29.912 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.46965301036834717
+2026-03-06 12:26:38.966 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239(1).jpg - Adding image to database...
+2026-03-06 12:26:38.971 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.04893314838409424
+2026-03-06 12:26:38.972 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.4445967674255371
+2026-03-06 12:26:38.972 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.46470242738723755
+2026-03-06 12:26:38.972 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.4705921411514282
+2026-03-06 12:26:38.972 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.4712434411048889
+2026-03-06 12:26:39.067 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239(2).jpg - Adding image to database...
+2026-03-06 12:26:39.073 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.1689242720603943
+2026-03-06 12:26:39.074 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4037711024284363
+2026-03-06 12:26:39.074 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.4167882204055786
+2026-03-06 12:26:39.075 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.43394923210144043
+2026-03-06 12:26:39.075 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.4609711170196533
+2026-03-06 12:26:39.180 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239(3).jpg - Adding image to database...
+2026-03-06 12:26:39.182 | INFO     | app.core.utils:phash_check:65 - Similarity detected (dist=2): ID 11
+2026-03-06 12:26:39.185 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.011693239212036133
+2026-03-06 12:26:39.185 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.4088004231452942
+2026-03-06 12:26:39.186 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4254153370857239
+2026-03-06 12:26:39.186 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.439586341381073
+2026-03-06 12:26:39.186 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.4396343231201172
+2026-03-06 12:26:39.272 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239(4).jpg - Adding image to database...
+2026-03-06 12:26:39.280 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.07498133182525635
+2026-03-06 12:26:39.280 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.41562092304229736
+2026-03-06 12:26:39.280 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.43602222204208374
+2026-03-06 12:26:39.281 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.43782544136047363
+2026-03-06 12:26:39.281 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.440956175327301
+2026-03-06 12:26:39.366 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239(5).jpg - Adding image to database...
+2026-03-06 12:26:39.372 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.02260303497314453
+2026-03-06 12:26:39.373 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.42867863178253174
+2026-03-06 12:26:39.373 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.44098424911499023
+2026-03-06 12:26:39.373 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.45519745349884033
+2026-03-06 12:26:39.373 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.4581410884857178

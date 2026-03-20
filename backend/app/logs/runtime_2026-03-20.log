@@ -1,0 +1,128 @@
+2026-03-20 11:09:28.935 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
+2026-03-20 11:09:32.603 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
+2026-03-20 11:09:33.943 | INFO     | app.core.clip_handler:_ensure_model_loaded:104 - Tokenizer loaded successfully.
+2026-03-20 11:12:34.335 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985796-0904.jpg - Adding image to database...
+2026-03-20 11:12:34.340 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 1 score 0.20176362991333008
+2026-03-20 11:12:35.363 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985804-0850.jpg - Adding image to database...
+2026-03-20 11:12:35.367 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 2 score 0.013893365859985352
+2026-03-20 11:12:35.367 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.39837151765823364
+2026-03-20 11:12:35.367 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4138942360877991
+2026-03-20 11:12:35.368 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.43523871898651123
+2026-03-20 11:12:35.368 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.44782572984695435
+2026-03-20 11:12:36.317 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985813-0897.jpg - Adding image to database...
+2026-03-20 11:12:36.319 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.006114959716796875
+2026-03-20 11:12:36.320 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.38956624269485474
+2026-03-20 11:12:36.320 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 0.4218512177467346
+2026-03-20 11:12:36.320 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.4243317246437073
+2026-03-20 11:12:36.320 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.4446844458580017
+2026-03-20 11:12:37.254 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985835-0033.jpg - Adding image to database...
+2026-03-20 11:12:37.258 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 4 score 0.023805618286132812
+2026-03-20 11:12:37.258 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.4768340587615967
+2026-03-20 11:12:38.215 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985840-0363.jpg - Adding image to database...
+2026-03-20 11:12:38.218 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.0023654699325561523
+2026-03-20 11:12:38.218 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.3010495901107788
+2026-03-20 11:12:38.218 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.3267383575439453
+2026-03-20 11:12:38.219 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.33925533294677734
+2026-03-20 11:12:38.219 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 0.4104543924331665
+2026-03-20 11:12:39.140 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985858-0590.jpg - Adding image to database...
+2026-03-20 11:12:39.143 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 1.6868114471435547e-05
+2026-03-20 11:12:39.143 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.3550650477409363
+2026-03-20 11:12:39.143 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.40821415185928345
+2026-03-20 11:12:39.143 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.41369545459747314
+2026-03-20 11:12:39.144 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.41930872201919556
+2026-03-20 11:12:40.109 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985862-0576.jpg - Adding image to database...
+2026-03-20 11:12:40.111 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 7 score 8.106231689453125e-06
+2026-03-20 11:12:41.026 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985865-0144.jpg - Adding image to database...
+2026-03-20 11:12:41.030 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 0.05539590120315552
+2026-03-20 11:12:41.030 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.2783355712890625
+2026-03-20 11:12:41.030 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.3936541676521301
+2026-03-20 11:12:41.030 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.4368928074836731
+2026-03-20 11:12:41.030 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4400481581687927
+2026-03-20 11:12:41.954 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985887-0789.jpg - Adding image to database...
+2026-03-20 11:12:41.957 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 9 score 0.016238927841186523
+2026-03-20 11:12:41.957 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.38730382919311523
+2026-03-20 11:12:41.957 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4136618971824646
+2026-03-20 11:12:41.957 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.4217641353607178
+2026-03-20 11:12:41.958 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.4293767809867859
+2026-03-20 11:12:42.949 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985928-0969.jpg - Adding image to database...
+2026-03-20 11:12:42.952 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 10 score 0.02689439058303833
+2026-03-20 11:12:42.952 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.4443286657333374
+2026-03-20 11:12:42.952 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.4480298161506653
+2026-03-20 11:12:42.952 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.45890486240386963
+2026-03-20 11:12:42.952 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4814971089363098
+2026-03-20 11:12:43.923 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239.jpg - Adding image to database...
+2026-03-20 11:12:43.926 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.08583873510360718
+2026-03-20 11:12:43.926 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.43530863523483276
+2026-03-20 11:12:43.926 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.44370484352111816
+2026-03-20 11:12:43.926 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.45592302083969116
+2026-03-20 11:12:43.926 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.47333860397338867
+2026-03-20 11:12:44.929 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239(1).jpg - Adding image to database...
+2026-03-20 11:12:44.931 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.09128028154373169
+2026-03-20 11:12:44.931 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.435122549533844
+2026-03-20 11:12:44.931 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4444535970687866
+2026-03-20 11:12:44.932 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.4539555311203003
+2026-03-20 11:12:44.932 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.455752968788147
+2026-03-20 11:24:25.902 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
+2026-03-20 11:24:27.625 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
+2026-03-20 11:24:29.102 | INFO     | app.core.clip_handler:_ensure_model_loaded:104 - Tokenizer loaded successfully.
+2026-03-20 11:24:29.289 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985796-0904.jpg - Adding image to database...
+2026-03-20 11:24:29.372 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 1 score 0.20180433988571167
+2026-03-20 11:24:29.437 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985804-0850.jpg - Adding image to database...
+2026-03-20 11:24:29.439 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 2 score 0.013895690441131592
+2026-03-20 11:24:29.440 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.39835941791534424
+2026-03-20 11:24:29.440 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4138922095298767
+2026-03-20 11:24:29.440 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.435217022895813
+2026-03-20 11:24:29.440 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.4478076696395874
+2026-03-20 11:24:29.506 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985813-0897.jpg - Adding image to database...
+2026-03-20 11:24:29.508 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.006107628345489502
+2026-03-20 11:24:29.508 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.38952088356018066
+2026-03-20 11:24:29.510 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 0.42180967330932617
+2026-03-20 11:24:29.510 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.4242839217185974
+2026-03-20 11:24:29.510 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.4446897506713867
+2026-03-20 11:24:29.569 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985835-0033.jpg - Adding image to database...
+2026-03-20 11:24:29.573 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 4 score 0.02379751205444336
+2026-03-20 11:24:29.573 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.47680795192718506
+2026-03-20 11:24:29.641 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985840-0363.jpg - Adding image to database...
+2026-03-20 11:24:29.644 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.002379298210144043
+2026-03-20 11:24:29.644 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.3011011481285095
+2026-03-20 11:24:29.644 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.32677918672561646
+2026-03-20 11:24:29.644 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.3393141031265259
+2026-03-20 11:24:29.644 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 0.41050291061401367
+2026-03-20 11:24:29.706 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985858-0590.jpg - Adding image to database...
+2026-03-20 11:24:29.708 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 6 score 1.7583370208740234e-05
+2026-03-20 11:24:29.708 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.3550800085067749
+2026-03-20 11:24:29.710 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.40823113918304443
+2026-03-20 11:24:29.710 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4137049913406372
+2026-03-20 11:24:29.710 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.4192872643470764
+2026-03-20 11:24:29.769 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985862-0576.jpg - Adding image to database...
+2026-03-20 11:24:29.772 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 7 score 9.894371032714844e-06
+2026-03-20 11:24:29.830 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985865-0144.jpg - Adding image to database...
+2026-03-20 11:24:29.834 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 8 score 0.05542933940887451
+2026-03-20 11:24:29.834 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.2783622741699219
+2026-03-20 11:24:29.834 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 3 score 0.3936814069747925
+2026-03-20 11:24:29.835 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.4369432330131531
+2026-03-20 11:24:29.835 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.44008058309555054
+2026-03-20 11:24:29.890 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985887-0789.jpg - Adding image to database...
+2026-03-20 11:24:29.895 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 9 score 0.01621568202972412
+2026-03-20 11:24:29.895 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.38737624883651733
+2026-03-20 11:24:29.895 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4137619137763977
+2026-03-20 11:24:29.895 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.4218180179595947
+2026-03-20 11:24:29.895 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.4294756054878235
+2026-03-20 11:24:29.958 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985928-0969.jpg - Adding image to database...
+2026-03-20 11:24:29.960 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 10 score 0.0268632173538208
+2026-03-20 11:24:29.962 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 19 score 0.44426536560058594
+2026-03-20 11:24:29.962 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 15 score 0.44810765981674194
+2026-03-20 11:24:29.962 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.4589502215385437
+2026-03-20 11:24:29.962 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 5 score 0.4815250635147095
+2026-03-20 11:24:30.021 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239.jpg - Adding image to database...
+2026-03-20 11:24:30.025 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.08584713935852051
+2026-03-20 11:24:30.025 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.43538331985473633
+2026-03-20 11:24:30.025 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.44374483823776245
+2026-03-20 11:24:30.025 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.4560025930404663
+2026-03-20 11:24:30.025 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 17 score 0.4733926057815552
+2026-03-20 11:24:30.082 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985934-0239(1).jpg - Adding image to database...
+2026-03-20 11:24:30.087 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 11 score 0.09125447273254395
+2026-03-20 11:24:30.087 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 12 score 0.4350541830062866
+2026-03-20 11:24:30.087 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 21 score 0.44440168142318726
+2026-03-20 11:24:30.087 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 16 score 0.4539293050765991
+2026-03-20 11:24:30.087 | INFO     | app.core.utils:vector_check:99 - Vector similarity detected: ID 20 score 0.4556846618652344

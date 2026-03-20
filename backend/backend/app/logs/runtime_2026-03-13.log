@@ -1,0 +1,9 @@
+2026-03-13 10:19:43.603 | INFO     | __main__:<module>:152 - === Starting Smart Keyframe Extraction Test ===
+2026-03-13 10:19:43.605 | INFO     | __main__:<module>:153 - Target Video: E:\片\EVA新世纪福音战士\旧TV+剧场版\17.mkv
+2026-03-13 10:19:43.609 | INFO     | __main__:extract_frames_with_fallback:58 - Extracting raw frames (trying I-frames first)...
+2026-03-13 10:20:23.930 | INFO     | __main__:__init__:19 - Initializing MobileNetV3 for frame deduplication...
+2026-03-13 10:20:24.120 | INFO     | __main__:extract_key_frames_smart:113 - Filtering 355 raw frames through deep semantic deduplication...
+2026-03-13 10:20:39.087 | INFO     | __main__:extract_key_frames_smart:136 - Deduplication finished in 15.16s.
+2026-03-13 10:20:39.100 | INFO     | __main__:extract_key_frames_smart:137 - Reduced from 355 raw frames to 322 keyframes.
+2026-03-13 10:20:39.123 | INFO     | __main__:extract_key_frames_smart:146 - Total processing time: 55.51s
+2026-03-13 10:20:39.126 | INFO     | __main__:<module>:164 - === Test Completed ===
