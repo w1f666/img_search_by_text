@@ -1,3 +1,4 @@
+import { buildRequestParams, hasHttpBackend, request } from "@/lib/request";
 import type {
   BackendGallery,
   BackendHistoryRecord,
@@ -676,68 +677,67 @@ const buildRange = (page: number, pageSize = DEFAULT_PAGE_SIZE) => ({
   end: page * pageSize,
 });
 
+type BackendPaginationMeta = {
+  requested_start: number;
+  requested_end: number;
+  returned_start: number;
+  returned_end: number;
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+  has_previous: boolean;
+  has_next: boolean;
+};
+
+type BackendPaginatedResult<T> = {
+  items: T[];
+  meta: BackendPaginationMeta;
+};
+
+type BackendImageDetailContextResponse = {
+  image: BackendImage;
+  previous_image: BackendImage | null;
+  next_image: BackendImage | null;
+  related_images: BackendImage[];
+};
+
+const toPaginationMeta = (meta: BackendPaginationMeta): PaginationMeta => ({
+  requestedStart: meta.requested_start,
+  requestedEnd: meta.requested_end,
+  returnedStart: meta.returned_start,
+  returnedEnd: meta.returned_end,
+  total: meta.total,
+  page: meta.page,
+  pageSize: meta.page_size,
+  totalPages: meta.total_pages,
+  hasPrevious: meta.has_previous,
+  hasNext: meta.has_next,
+});
+
 export const mediaApi = {
   buildRange,
 
   async searchBestMatch(payload: SearchBestMatchPayload): Promise<SearchBestMatchResponse> {
-    const endpointBase = import.meta.env.VITE_BACKEND_URL;
-
-    if (endpointBase) {
+    if (hasHttpBackend) {
       try {
-        const response = await fetch(`${endpointBase}/api/search/best-match`, {
+        const response = await request<{ best_match: BackendImage | null; search_session_id: string | null }>({
+          url: "/api/search/best-match",
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+          data: {
             type: payload.type,
-            text_query: payload.textQuery?.trim() || null,
-            image_url: payload.imageUrl?.trim() || payload.referencePreviewImage?.url || null,
-            search_session_id: payload.searchSessionId ?? null,
+            text_query: payload.textQuery?.trim() || undefined,
+            image_url: payload.imageUrl?.trim() || payload.referencePreviewImage?.url || undefined,
+            search_session_id: payload.searchSessionId ?? undefined,
             top_k: payload.topK ?? 24,
             search_strategy: payload.searchStrategy ?? "balanced",
-          }),
+          },
         });
 
-        if (response.ok) {
-          const body = await response.json();
-          const directMatch = body?.best_match ?? body?.data?.best_match ?? null;
-          const nextSessionId =
-            body?.search_session_id
-            ?? body?.data?.search_session_id
-            ?? body?.data?.session?.session_id
-            ?? payload.searchSessionId
-            ?? null;
-
-          if (directMatch?.id && directMatch?.image_url) {
-            return {
-              bestMatch: toImageItem(directMatch),
-              searchSessionId: nextSessionId,
-            };
-          }
-
-          const firstItem = body?.data?.turn?.items?.[0];
-
-          if (firstItem) {
-            const imageById = database.images.find(
-              (image) => String(image.id) === String(firstItem.image_id)
-            );
-            const imageByUrl = database.images.find(
-              (image) =>
-                image.thumbnail_url === firstItem.thumbnail_url || image.image_url === firstItem.thumbnail_url
-            );
-
-            return {
-              bestMatch: imageById ? toImageItem(imageById) : imageByUrl ? toImageItem(imageByUrl) : null,
-              searchSessionId: nextSessionId,
-            };
-          }
-
-          return {
-            bestMatch: null,
-            searchSessionId: nextSessionId,
-          };
-        }
+        return {
+          bestMatch: response.best_match ? toImageItem(response.best_match) : null,
+          searchSessionId: response.search_session_id,
+        };
       } catch {
         // Fall through to local mock result.
       }
@@ -748,12 +748,16 @@ export const mediaApi = {
     const nextSessionId = payload.searchSessionId ?? createId("history");
 
     if (bestMatch) {
-      persistMockSearchHistory(nextSessionId, {
-        type: payload.type,
-        textQuery: payload.textQuery,
-        imageUrl: payload.imageUrl,
-        referencePreviewImage: payload.referencePreviewImage,
-      }, bestMatch);
+      persistMockSearchHistory(
+        nextSessionId,
+        {
+          type: payload.type,
+          textQuery: payload.textQuery,
+          imageUrl: payload.imageUrl,
+          referencePreviewImage: payload.referencePreviewImage,
+        },
+        bestMatch
+      );
     }
 
     return {
@@ -763,12 +767,48 @@ export const mediaApi = {
   },
 
   async listGalleries() {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<{ items: BackendGallery[] }>({
+          url: "/api/galleries/all",
+          method: "GET",
+        });
+
+        return response.items.map(toGalleryItem);
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     syncGalleryImageCounts();
     return getFilteredGalleries({ sortBy: "created_at", sortOrder: "desc" }).map(toGalleryItem);
   },
 
   async listGalleriesPage(params: ListGalleriesPageParams): Promise<PaginatedResult<GalleryItem>> {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<BackendPaginatedResult<BackendGallery>>({
+          url: "/api/galleries",
+          method: "GET",
+          params: buildRequestParams({
+            start: params.start,
+            end: params.end,
+            query: params.query,
+            sort_by: params.sortBy,
+            sort_order: params.sortOrder,
+          }),
+        });
+
+        return {
+          items: response.items.map(toGalleryItem),
+          meta: toPaginationMeta(response.meta),
+        };
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     syncGalleryImageCounts();
     const filtered = getFilteredGalleries(params);
@@ -781,6 +821,24 @@ export const mediaApi = {
   },
 
   async createGallery(payload: CreateGalleryPayload) {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<BackendGallery>({
+          url: "/api/galleries",
+          method: "POST",
+          data: {
+            name: payload.name.trim(),
+            description: payload.description.trim(),
+          },
+        });
+
+        clearDetailContextCache();
+        return toGalleryItem(response);
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     const now = nowIso();
     const record: BackendGallery = {
@@ -799,6 +857,24 @@ export const mediaApi = {
   },
 
   async updateGallery(id: string, payload: UpdateGalleryPayload) {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<BackendGallery>({
+          url: `/api/galleries/${id}`,
+          method: "PATCH",
+          data: {
+            ...(payload.name !== undefined ? { name: payload.name.trim() } : {}),
+            ...(payload.description !== undefined ? { description: payload.description.trim() } : {}),
+          },
+        });
+
+        clearDetailContextCache();
+        return toGalleryItem(response);
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     const now = nowIso();
     database.galleries = database.galleries.map((gallery) => {
@@ -820,6 +896,19 @@ export const mediaApi = {
   },
 
   async deleteGallery(id: string) {
+    if (hasHttpBackend) {
+      try {
+        await request<{ gallery_id: string; deleted: boolean; moved_to_ungrouped_count: number }>({
+          url: `/api/galleries/${id}`,
+          method: "DELETE",
+        });
+        clearDetailContextCache();
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     database.galleries = database.galleries.filter((gallery) => gallery.id !== id);
     database.images = database.images.map((image) =>
@@ -830,6 +919,40 @@ export const mediaApi = {
   },
 
   async listImages(params?: { galleryId?: string | null; status?: ImageStatus; query?: string }) {
+    if (hasHttpBackend) {
+      try {
+        if ((params?.status ?? "active") === "trash") {
+          const response = await request<BackendPaginatedResult<BackendImage>>({
+            url: "/api/trash/images",
+            method: "GET",
+            params: buildRequestParams({
+              start: 1,
+              end: 200,
+              query: params?.query,
+              sort_by: "deleted_at",
+              sort_order: "desc",
+            }),
+          });
+
+          return response.items.map(toImageItem);
+        }
+
+        const response = await request<{ items: BackendImage[] }>({
+          url: "/api/images/all",
+          method: "GET",
+          params: buildRequestParams({
+            status: params?.status ?? "active",
+            gallery_id: params?.galleryId,
+            query: params?.query,
+          }),
+        });
+
+        return response.items.map(toImageItem);
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     return getFilteredImages({
       galleryId: params?.galleryId,
@@ -841,6 +964,50 @@ export const mediaApi = {
   },
 
   async listImagesPage(params: ListImagesPageParams): Promise<PaginatedResult<ImageItem>> {
+    if (hasHttpBackend) {
+      try {
+        if ((params.status ?? "active") === "trash") {
+          const response = await request<BackendPaginatedResult<BackendImage>>({
+            url: "/api/trash/images",
+            method: "GET",
+            params: buildRequestParams({
+              start: params.start,
+              end: params.end,
+              query: params.query,
+              sort_by: "deleted_at",
+              sort_order: params.sortOrder,
+            }),
+          });
+
+          return {
+            items: response.items.map(toImageItem),
+            meta: toPaginationMeta(response.meta),
+          };
+        }
+
+        const response = await request<BackendPaginatedResult<BackendImage>>({
+          url: "/api/images",
+          method: "GET",
+          params: buildRequestParams({
+            start: params.start,
+            end: params.end,
+            status: params.status ?? "active",
+            gallery_id: params.galleryId,
+            query: params.query,
+            sort_by: params.sortBy,
+            sort_order: params.sortOrder,
+          }),
+        });
+
+        return {
+          items: response.items.map(toImageItem),
+          meta: toPaginationMeta(response.meta),
+        };
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     const filtered = getFilteredImages(params);
     const paginated = paginateItems(filtered, params.start, params.end);
@@ -852,6 +1019,26 @@ export const mediaApi = {
   },
 
   async createImage(payload: CreateImagePayload) {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<BackendImage>({
+          url: "/api/images",
+          method: "POST",
+          data: {
+            filename: payload.filename.trim(),
+            size_label: payload.sizeLabel.trim(),
+            url: payload.url.trim(),
+            gallery_id: payload.galleryId ?? null,
+          },
+        });
+
+        clearDetailContextCache();
+        return toImageItem(response);
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     const now = nowIso();
     const image: BackendImage = {
@@ -874,6 +1061,23 @@ export const mediaApi = {
   },
 
   async updateImage(id: string, payload: UpdateImagePayload) {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<{ id: string; gallery_id: string | null; updated_at: string }>({
+          url: `/api/images/${id}`,
+          method: "PATCH",
+          data: {
+            ...(payload.galleryId !== undefined ? { gallery_id: payload.galleryId } : {}),
+          },
+        });
+
+        clearDetailContextCache();
+        return response;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     database.images = database.images.map((image) =>
       image.id === id
@@ -890,6 +1094,19 @@ export const mediaApi = {
   },
 
   async moveImageToTrash(id: string) {
+    if (hasHttpBackend) {
+      try {
+        await request<{ id: string; status: "trash"; deleted_at: string }>({
+          url: `/api/images/${id}/trash`,
+          method: "POST",
+        });
+        clearDetailContextCache();
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     const deletedAt = nowIso();
     database.images = database.images.map((image) =>
@@ -902,6 +1119,20 @@ export const mediaApi = {
   },
 
   async moveImagesToTrash(ids: string[]) {
+    if (hasHttpBackend) {
+      try {
+        await request<{ image_ids: string[]; deleted_count: number }>({
+          url: "/api/images/batch-trash",
+          method: "POST",
+          data: { image_ids: ids },
+        });
+        clearDetailContextCache();
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     const targetIds = new Set(ids);
     const deletedAt = nowIso();
@@ -915,6 +1146,19 @@ export const mediaApi = {
   },
 
   async restoreImage(id: string) {
+    if (hasHttpBackend) {
+      try {
+        await request<{ id: string; status: "active"; deleted_at: null }>({
+          url: `/api/images/${id}/restore`,
+          method: "POST",
+        });
+        clearDetailContextCache();
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     database.images = database.images.map((image) =>
       image.id === id
@@ -926,6 +1170,19 @@ export const mediaApi = {
   },
 
   async permanentlyDeleteImage(id: string) {
+    if (hasHttpBackend) {
+      try {
+        await request<{ id: string; deleted: true }>({
+          url: `/api/images/${id}`,
+          method: "DELETE",
+        });
+        clearDetailContextCache();
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     database.images = database.images.filter((image) => image.id !== id);
     syncGalleryImageCounts();
@@ -933,6 +1190,19 @@ export const mediaApi = {
   },
 
   async clearTrash() {
+    if (hasHttpBackend) {
+      try {
+        await request<{ deleted_count: number }>({
+          url: "/api/trash",
+          method: "DELETE",
+        });
+        clearDetailContextCache();
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     database.images = database.images.filter((image) => image.status !== "trash");
     syncGalleryImageCounts();
@@ -943,6 +1213,28 @@ export const mediaApi = {
     const cached = getCachedDetailContext(imageId, galleryId);
     if (cached !== undefined) {
       return cached;
+    }
+
+    if (hasHttpBackend) {
+      try {
+        const response = await request<BackendImageDetailContextResponse>({
+          url: `/api/images/${imageId}/detail-context`,
+          method: "GET",
+          params: buildRequestParams({ gallery_id: galleryId }),
+        });
+
+        const context: ImageDetailContext = {
+          image: toImageItem(response.image),
+          previousImage: response.previous_image ? toImageItem(response.previous_image) : null,
+          nextImage: response.next_image ? toImageItem(response.next_image) : null,
+          relatedImages: response.related_images.map(toImageItem),
+        };
+
+        cacheDetailContext(imageId, galleryId, context);
+        return context;
+      } catch {
+        // Fall through to local mock result.
+      }
     }
 
     await wait();
@@ -957,23 +1249,63 @@ export const mediaApi = {
       return cached;
     }
 
-    const context = buildImageDetailContext(imageId, galleryId);
-    cacheDetailContext(imageId, galleryId, context);
-    return context;
+    return this.getImageDetailContext(imageId, galleryId);
   },
 
   async listHistory(keyword?: string) {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<{ items: BackendHistoryRecord[] }>({
+          url: "/api/history",
+          method: "GET",
+          params: buildRequestParams({ keyword }),
+        });
+
+        return response.items.map(toHistoryRecord);
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     return getFilteredHistories(keyword).map(toHistoryRecord);
   },
 
   async renameSearchSession(sessionId: string, title: string) {
+    if (hasHttpBackend) {
+      try {
+        await request<{ session_id: string; title: string; updated_at: string }>({
+          url: `/api/history/${sessionId}`,
+          method: "PATCH",
+          data: { title: title.trim() },
+        });
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     renameHistoryRecord(sessionId, title);
   },
 
   async deleteSearchSession(sessionId: string) {
+    if (hasHttpBackend) {
+      try {
+        await request<{ session_id: string; deleted: boolean }>({
+          url: `/api/history/${sessionId}`,
+          method: "DELETE",
+        });
+        return;
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
     await wait();
     database.histories = database.histories.filter((record) => record.session_id !== sessionId);
   },
 };
+
+export type MediaApi = typeof mediaApi;
+export default mediaApi;

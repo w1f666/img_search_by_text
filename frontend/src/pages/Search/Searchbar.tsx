@@ -1,14 +1,12 @@
-
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, ImagePlus, Loader2, Paperclip, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTopbarNameStore } from "@/store/useTopbarNameStore";
-import { useGalleryStore } from "@/store/useGalleryStore";
-import { mediaApi } from "@/lib/media-api";
-import type { ImageItem, SearchQuery, SearchStrategy } from "@/types/media";
+import { LazyImage } from "@/pages/customcomponents/ui/LazyImage";
+import { useHistoryListQuery, useSearchBestMatchMutation } from "@/lib/media-query";
+import type { HistoryRecord, ImageItem, SearchBestMatchResponse, SearchQuery, SearchStrategy } from "@/types/media";
 import { FancySelect } from "@/pages/customcomponents/ui/FancySelect";
 
 const getQueryLabel = (query: SearchQuery) =>
@@ -33,31 +31,22 @@ export default function Searchbar() {
     const [uploadedQueryImage, setUploadedQueryImage] = useState<ImageItem | null>(null);
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [greetingIndex, setGreetingIndex] = useState(0);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchMode, setSearchMode] = useState<SearchStrategy>("balanced");
-
-    const historyRecords = useGalleryStore((state) => state.historyRecords);
-    const initLibrary = useGalleryStore((state) => state.initLibrary);
-    const refreshLibrary = useGalleryStore((state) => state.refreshLibrary);
-
-    const { SetisSearched, SetKeywords } = useTopbarNameStore();
-
-    useEffect(() => {
-        void initLibrary();
-    }, [initLibrary]);
+    const searchMutation = useSearchBestMatchMutation();
+    const { data: historyRecords = [] } = useHistoryListQuery();
 
     const selectedHistoryId = searchParams.get("history");
     const selectedHistory = useMemo(
-        () => historyRecords.find((record) => record.id === selectedHistoryId) ?? null,
+        () => historyRecords.find((record: HistoryRecord) => record.id === selectedHistoryId) ?? null,
         [historyRecords, selectedHistoryId]
     );
 
-    const turns = selectedHistory?.turns ?? [];
+    const turns = useMemo(() => selectedHistory?.turns ?? [], [selectedHistory]);
     const latestTurn = turns[turns.length - 1] ?? null;
     const latestResult = latestTurn?.[1] ?? null;
 
     const contextFeatures = useMemo(
-        () => turns.map((turn, index) => ({ index, label: getQueryLabel(turn[0]) })),
+        () => turns.map((turn: HistoryRecord["turns"][number], index: number) => ({ index, label: getQueryLabel(turn[0]) })),
         [turns]
     );
 
@@ -74,17 +63,6 @@ export default function Searchbar() {
     }, [turns.length]);
 
     useEffect(() => {
-        if (!selectedHistory) {
-            SetisSearched(false);
-            SetKeywords("");
-            return;
-        }
-
-        SetisSearched(true);
-        SetKeywords(selectedHistory.title);
-    }, [SetKeywords, SetisSearched, selectedHistory]);
-
-    useEffect(() => {
         return () => {
             if (uploadedQueryImage?.url.startsWith("blob:")) {
                 URL.revokeObjectURL(uploadedQueryImage.url);
@@ -99,7 +77,6 @@ export default function Searchbar() {
         }
 
         const previewUrl = URL.createObjectURL(file);
-
         const localPreview: ImageItem = {
             id: `upload-${Date.now()}`,
             url: previewUrl,
@@ -118,7 +95,7 @@ export default function Searchbar() {
     };
 
     const handleSubmit = async () => {
-        if (isSubmitting) {
+        if (searchMutation.isPending) {
             return;
         }
 
@@ -130,41 +107,33 @@ export default function Searchbar() {
             return;
         }
 
-        setIsSubmitting(true);
+        const searchResponse: SearchBestMatchResponse = await searchMutation.mutateAsync({
+            type: hasInput && hasUploadedImage ? "mixed" : hasUploadedImage ? "image" : "text",
+            textQuery: normalizedInput || undefined,
+            imageUrl: uploadedQueryImage?.url,
+            referenceImageFile: uploadedFile ?? undefined,
+            referencePreviewImage: uploadedQueryImage ?? undefined,
+            searchSessionId: selectedHistory?.id,
+            searchStrategy: searchMode,
+        });
 
-        try {
-            const searchResponse = await mediaApi.searchBestMatch({
-                type: hasInput && hasUploadedImage ? "mixed" : hasUploadedImage ? "image" : "text",
-                textQuery: normalizedInput || undefined,
-                imageUrl: uploadedQueryImage?.url,
-                referenceImageFile: uploadedFile ?? undefined,
-                referencePreviewImage: uploadedQueryImage ?? undefined,
-                searchSessionId: selectedHistory?.id,
-                searchStrategy: searchMode,
-            });
-
-            if (!searchResponse.bestMatch) {
-                return;
-            }
-
-            await refreshLibrary();
-
-            const nextHistoryId = searchResponse.searchSessionId ?? selectedHistory?.id;
-            if (nextHistoryId) {
-                const nextParams = new URLSearchParams(searchParams);
-                nextParams.set("history", nextHistoryId);
-                setSearchParams(nextParams, { replace: true });
-            }
-
-            setInputValue("");
-            if (uploadedQueryImage?.url.startsWith("blob:")) {
-                URL.revokeObjectURL(uploadedQueryImage.url);
-            }
-            setUploadedQueryImage(null);
-            setUploadedFile(null);
-        } finally {
-            setIsSubmitting(false);
+        if (!searchResponse.bestMatch) {
+            return;
         }
+
+        const nextHistoryId = searchResponse.searchSessionId ?? selectedHistory?.id;
+        if (nextHistoryId) {
+            const nextParams = new URLSearchParams(searchParams);
+            nextParams.set("history", nextHistoryId);
+            setSearchParams(nextParams, { replace: true });
+        }
+
+        setInputValue("");
+        if (uploadedQueryImage?.url.startsWith("blob:")) {
+            URL.revokeObjectURL(uploadedQueryImage.url);
+        }
+        setUploadedQueryImage(null);
+        setUploadedFile(null);
     };
 
     return (
@@ -215,10 +184,12 @@ export default function Searchbar() {
                             animate={{ opacity: 1, y: 0 }}
                             className="grid gap-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 md:grid-cols-[1.1fr_1fr]"
                         >
-                            <img
+                            <LazyImage
                                 src={latestResult.url}
                                 alt={latestResult.filename}
-                                className="h-60 w-full rounded-2xl object-cover sm:h-72"
+                                eager
+                                wrapperClassName="h-60 w-full overflow-hidden rounded-2xl sm:h-72"
+                                className="h-full w-full object-cover"
                             />
                             <div className="flex flex-col justify-between rounded-2xl bg-slate-50 dark:bg-zinc-800/50 p-4">
                                 <div>
@@ -227,7 +198,7 @@ export default function Searchbar() {
                                     <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">{latestResult.createdAt} · {latestResult.sizeLabel}</p>
                                 </div>
                                 <div className="mt-4 flex flex-wrap gap-2">
-                                    {contextFeatures.slice(-4).map((feature) => (
+                                    {contextFeatures.slice(-4).map((feature: { index: number; label: string }) => (
                                         <span
                                             key={`${feature.label}-${feature.index}`}
                                             className="max-w-52 truncate rounded-full border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1 text-xs text-slate-600 dark:text-zinc-300"
@@ -251,7 +222,7 @@ export default function Searchbar() {
                         {turns.length === 0 ? (
                             <p className="rounded-xl bg-slate-50 dark:bg-zinc-800/50 px-4 py-3 text-sm text-slate-500 dark:text-zinc-400">你的每一轮输入都会记录在这里。</p>
                         ) : (
-                            turns.map((turn, index) => {
+                            turns.map((turn: HistoryRecord["turns"][number], index: number) => {
                                 const [query, topImage] = turn;
                                 return (
                                     <motion.div
@@ -266,7 +237,12 @@ export default function Searchbar() {
                                             {getQueryLabel(query)}
                                         </div>
                                         <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500 dark:text-zinc-400">
-                                            <img src={topImage.url} alt={topImage.filename} className="size-7 rounded-md object-cover" />
+                                            <LazyImage
+                                                src={topImage.url}
+                                                alt={topImage.filename}
+                                                wrapperClassName="size-7 overflow-hidden rounded-md"
+                                                className="h-full w-full object-cover"
+                                            />
                                             <span className="max-w-28 truncate">{topImage.filename}</span>
                                         </div>
                                     </motion.div>
@@ -348,10 +324,10 @@ export default function Searchbar() {
 
                             <Button
                                 onClick={() => void handleSubmit()}
-                                disabled={isSubmitting}
+                                disabled={searchMutation.isPending}
                                 className="ml-auto rounded-full bg-slate-900 px-5 text-white hover:bg-slate-700"
                             >
-                                {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
+                                {searchMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowUp className="size-4" />}
                                 搜索
                             </Button>
                         </div>

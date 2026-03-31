@@ -11,10 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Menu, Plus, Images, Image, Trash } from "lucide-react"
 import Sidebarhistory from "./ui/Sidebarhistory";
 import Sidebaricon from "./ui/Sidebariconbutton"
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
-import { useGalleryStore } from "@/store/useGalleryStore";
+import { useHistoryListQuery } from "@/lib/media-query";
 
 interface SidebarNavItemProps {
   onClick: () => void;
@@ -54,14 +53,8 @@ function SidebarNavItem({ onClick, label, icon, state, className }: SidebarNavIt
 export default function AppSidebar() {
   const { toggleSidebar, state } = useSidebar();
   const navigate = useNavigate();
-  const historyRecords = useGalleryStore((store) => store.historyRecords);
-  const initialized = useGalleryStore((store) => store.initialized);
-  const isInitializing = useGalleryStore((store) => store.isInitializing);
-  const initLibrary = useGalleryStore((store) => store.initLibrary);
-
-  useEffect(() => {
-    void initLibrary();
-  }, [initLibrary]);
+  // 侧边栏直接读共享 history query，不再维护独立的“历史副本”。
+  const { data: historyRecords = [], isLoading } = useHistoryListQuery();
 
   function mytoggleSidebar() {
     toggleSidebar();
@@ -99,7 +92,7 @@ export default function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="test-md">搜索历史</SidebarGroupLabel>
           <div className="flex flex-col items-start justify-center gap-1 py-2 px-4">
-            {isInitializing && !initialized ? (
+            {isLoading ? (
               <div className="flex w-full max-w-xs flex-col gap-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-full" />

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -11,62 +11,31 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { mediaApi } from "@/lib/media-api";
-import { useGalleryStore } from "@/store/useGalleryStore";
-import type { ImageDetailContext } from "@/types/media";
+import { LazyImage } from "@/pages/customcomponents/ui/LazyImage";
+import { mediaApi } from "../../lib/media-api";
+import { preloadImageResource } from "@/lib/image-resource";
+import { useImageDetailContextQuery, useMoveImageToTrashMutation, useUpdateImageMutation } from "@/lib/media-query";
 import { PageHeader } from "@/pages/customcomponents/ui/PageHeader";
 import { ImageGrid } from "@/pages/customcomponents/ui/ImageGrid";
 import { ImageCard } from "@/pages/customcomponents/ui/imagecard";
-
-const imageResourceCache = new Set<string>();
-
-const preloadImageResource = (url?: string) => {
-  if (!url || imageResourceCache.has(url) || typeof window === "undefined") {
-    return;
-  }
-
-  const image = new window.Image();
-  image.onload = () => {
-    imageResourceCache.add(url);
-  };
-  image.onerror = () => {
-    imageResourceCache.delete(url);
-  };
-  image.src = url;
-};
+import type { ImageItem } from "@/types/media";
 
 export default function ImageDetail() {
   const navigate = useNavigate();
   const { galleryId, imageid } = useParams<{ galleryId?: string; imageid: string }>();
-  const refreshLibrary = useGalleryStore((state) => state.refreshLibrary);
-  const [context, setContext] = useState<ImageDetailContext | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMutating, setIsMutating] = useState(false);
-
-  const loadContext = useCallback(async () => {
-    if (!imageid) {
-      setContext(null);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const next = await mediaApi.getImageDetailContext(imageid, galleryId);
-      setContext(next);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [galleryId, imageid]);
-
-  useEffect(() => {
-    void loadContext();
-  }, [loadContext]);
+  // 详情页只发一个 query，后端或 mock 会把当前图、邻近图、相关图一次返回。
+  const detailQuery = useImageDetailContextQuery(imageid, galleryId);
+  const updateImage = useUpdateImageMutation();
+  const moveImageToTrash = useMoveImageToTrashMutation();
+  const context = detailQuery.data ?? null;
+  const isMutating = updateImage.isPending || moveImageToTrash.isPending;
 
   useEffect(() => {
     if (!context) {
       return;
     }
 
+    // 首屏展示当前图的同时，提前预热邻近图和相关图，切换详情时更顺滑。
     preloadImageResource(context.image.url);
 
     if (context.previousImage) {
@@ -79,7 +48,7 @@ export default function ImageDetail() {
       preloadImageResource(context.nextImage.url);
     }
 
-    context.relatedImages.forEach((entry) => {
+    context.relatedImages.forEach((entry: ImageItem) => {
       preloadImageResource(entry.thumbnailUrl ?? entry.url);
     });
   }, [context, galleryId]);
@@ -93,14 +62,12 @@ export default function ImageDetail() {
       return;
     }
 
-    setIsMutating(true);
-    try {
-      await mediaApi.updateImage(image.id, { galleryId: null });
-      await refreshLibrary();
-      await loadContext();
-    } finally {
-      setIsMutating(false);
+    await updateImage.mutateAsync({ id: image.id, payload: { galleryId: null } });
+    if (galleryId) {
+      navigate(`/all-images/${image.id}`, { replace: true });
+      return;
     }
+    await detailQuery.refetch();
   };
 
   const handleMoveToTrash = async () => {
@@ -108,17 +75,11 @@ export default function ImageDetail() {
       return;
     }
 
-    setIsMutating(true);
-    try {
-      await mediaApi.moveImageToTrash(image.id);
-      await refreshLibrary();
-      await loadContext();
-    } finally {
-      setIsMutating(false);
-    }
+    await moveImageToTrash.mutateAsync(image.id);
+    navigate("/trash", { replace: true });
   };
 
-  if (isLoading) {
+  if (detailQuery.isLoading) {
     return (
       <div data-page-shell className="flex flex-col gap-6 px-5 py-8 sm:px-6 lg:px-8">
         <section data-page-hero className="rounded-[2rem] px-6 py-16 text-center text-sm text-muted-foreground">
@@ -176,7 +137,7 @@ export default function ImageDetail() {
               </Button>
             </div>
             {image.galleryId ? (
-              <Button variant="secondary" onClick={() => navigate(`/gallery/${image.galleryId}`)}>
+              <Button variant="outline" onClick={() => navigate(`/gallery/${image.galleryId}`)}>
                 <FolderOpen className="size-4" />
                 打开所属图集
               </Button>
@@ -190,7 +151,15 @@ export default function ImageDetail() {
           </div>
 
           <div className="overflow-hidden rounded-[1.75rem] border border-border/55 bg-card/85 shadow-lg">
-            <img src={image.url} alt={image.filename} className="max-h-[72vh] w-full object-cover" />
+            {/* 详情主图直接 eager 加载，保证用户进入详情页时第一视觉尽快完成。 */}
+            <LazyImage
+              src={image.url}
+              alt={image.filename}
+              eager
+              fetchPriority="high"
+              wrapperClassName="w-full bg-muted/30"
+              className="max-h-[72vh] w-full object-cover"
+            />
           </div>
         </div>
 
@@ -199,7 +168,7 @@ export default function ImageDetail() {
             <div className="space-y-2">
               <div className="inline-flex items-center gap-2 rounded-full border border-border/55 bg-secondary/85 px-3 py-1 text-xs text-muted-foreground">
                 <ImageIcon className="size-3.5" />
-                {image.status === "active" ? "活动图片" : "回收站图片"}
+                {image.status === "active" ? "可用图片" : "回收站图片"}
               </div>
               <PageHeader
                 title={image.filename}
@@ -215,10 +184,6 @@ export default function ImageDetail() {
               <div className="rounded-2xl border border-border/50 bg-background/75 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">文件大小</p>
                 <p className="mt-1 text-sm font-medium text-foreground">{image.sizeLabel}</p>
-              </div>
-              <div className="rounded-2xl border border-border/50 bg-background/75 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">来源方式</p>
-                <p className="mt-1 text-sm font-medium text-foreground">{image.source === "upload" ? "手动添加" : "扫描导入"}</p>
               </div>
               <div className="rounded-2xl border border-border/50 bg-background/75 px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">所属图集</p>
@@ -253,7 +218,7 @@ export default function ImageDetail() {
             />
           </div>
           <ImageGrid className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            {context.relatedImages.map((entry) => (
+            {context.relatedImages.map((entry: ImageItem) => (
               <ImageCard
                 key={entry.id}
                 image={entry}

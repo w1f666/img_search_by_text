@@ -21,26 +21,27 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes";
-import { useTopbarNameStore } from "@/store/useTopbarNameStore";
-import { useGalleryStore } from "@/store/useGalleryStore";
+import { useDeleteHistoryMutation, useHistoryListQuery, useRenameHistoryMutation } from "@/lib/media-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { ConfirmDialog } from "@/pages/customcomponents/ui/ConfirmDialog";
+import type { HistoryRecord } from "@/types/media";
 
 export default function Topbar(){
-    const {isSearched, Keywords, SetKeywords, SetisSearched} = useTopbarNameStore();
-    const historyRecords = useGalleryStore((state) => state.historyRecords);
-    const renameSearchSession = useGalleryStore((state) => state.renameSearchSession);
-    const deleteSearchSession = useGalleryStore((state) => state.deleteSearchSession);
+    // 顶栏标题直接由 URL 中当前 history id 对应的会话记录推导出来。
+    const { data: historyRecords = [] } = useHistoryListQuery();
+    const renameSearchSession = useRenameHistoryMutation();
+    const deleteSearchSession = useDeleteHistoryMutation();
     const [menuOpen, setMenuOpen] = useState(false);
     const [renameOpen, setRenameOpen] = useState(false);
+    const [deleteOpen, setDeleteOpen] = useState(false);
     const [renameValue, setRenameValue] = useState("");
-    const [isRenaming, setIsRenaming] = useState(false);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const GithubURL = "https://github.com/quark-sp/image-search-and-duplicate-by-CLIP";
     const {theme, setTheme, resolvedTheme} = useTheme();
     const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark");
     const currentSessionId = searchParams.get("history");
-    const currentHistory = historyRecords.find((record) => record.id === currentSessionId) ?? null;
+    const currentHistory = historyRecords.find((record: HistoryRecord) => record.id === currentSessionId) ?? null;
 
     function openRenameDialog(){
         if (!currentHistory) {
@@ -62,14 +63,9 @@ export default function Topbar(){
             return;
         }
 
-        setIsRenaming(true);
-        try {
-            await renameSearchSession(currentSessionId, nextTitle);
-            SetKeywords(nextTitle);
-            setRenameOpen(false);
-        } finally {
-            setIsRenaming(false);
-        }
+        // 重命名成功后，mutation 会触发 history query 失效，顶栏和侧边栏会自动同步。
+        await renameSearchSession.mutateAsync({ sessionId: currentSessionId, title: nextTitle });
+        setRenameOpen(false);
     }
 
     async function Deletechat(){
@@ -77,13 +73,8 @@ export default function Topbar(){
             return;
         }
 
-        if (!window.confirm("确认删除当前搜索会话吗？删除后将从历史中移除。")) {
-            return;
-        }
-
-        await deleteSearchSession(currentSessionId);
-        SetKeywords("");
-        SetisSearched(false);
+        await deleteSearchSession.mutateAsync(currentSessionId);
+        setDeleteOpen(false);
         navigate("/", { replace: true });
     }
 
@@ -95,7 +86,7 @@ export default function Topbar(){
 
             <div className="flex min-w-0 flex-1 justify-center px-4">
                 <AnimatePresence>
-                    {isSearched ? (
+                    {currentHistory ? (
                         <motion.div
                             initial={{ opacity: 0, y: -6, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -103,7 +94,7 @@ export default function Topbar(){
                             className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200/80 bg-slate-50/90 px-3 py-1 text-sm text-slate-900 shadow-sm dark:border-zinc-700/80 dark:bg-zinc-800/90 dark:text-zinc-200"
                         >
                             <Sparkles className="size-3.5 shrink-0" />
-                            <span className="max-w-[38vw] truncate">{Keywords}</span>
+                            <span className="max-w-[38vw] truncate">{currentHistory.title}</span>
                         </motion.div>
                     ) : null}
                 </AnimatePresence>
@@ -159,7 +150,16 @@ export default function Topbar(){
                             <PencilLine className="mr-2 size-4" />
                             更改对话名称
                         </DropdownMenuItem>
-                        <DropdownMenuItem disabled={!currentSessionId} onClick={() => void Deletechat()} className="rounded-lg focus:bg-red-50 focus:text-red-700 dark:focus:bg-red-900/30 dark:focus:text-red-400">删除会话</DropdownMenuItem>
+                        <DropdownMenuItem
+                            disabled={!currentSessionId}
+                            onClick={() => {
+                                setDeleteOpen(true);
+                                setMenuOpen(false);
+                            }}
+                            className="rounded-lg focus:bg-red-50 focus:text-red-700 dark:focus:bg-red-900/30 dark:focus:text-red-400"
+                        >
+                            删除会话
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -184,13 +184,25 @@ export default function Topbar(){
                         <Button variant="outline" onClick={() => setRenameOpen(false)}>
                             取消
                         </Button>
-                        <Button disabled={isRenaming || !renameValue.trim()} onClick={() => void RenameChat()}>
-                            {isRenaming ? <LoaderCircle className="size-4 animate-spin" /> : null}
+                        <Button disabled={renameSearchSession.isPending || !renameValue.trim()} onClick={() => void RenameChat()}>
+                            {renameSearchSession.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
                             保存名称
                         </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={deleteOpen}
+                onOpenChange={setDeleteOpen}
+                title="删除会话"
+                description="确认删除当前搜索会话吗？"
+                warning="删除后，该会话会从历史记录中移除，且无法从当前前端界面恢复。"
+                confirmLabel="确认删除"
+                pending={deleteSearchSession.isPending}
+                tone="danger"
+                onConfirm={Deletechat}
+            />
         </div>
     )
 }

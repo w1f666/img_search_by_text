@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { LoaderCircle } from "lucide-react";
-import type { GalleryItem } from "@/store/useGalleryStore";
+import { LazyImage } from "@/pages/customcomponents/ui/LazyImage";
+import type { GalleryItem } from "@/types/media";
 
 export function GalleryCard({
   id,
@@ -38,10 +39,11 @@ export function GalleryCard({
 
       <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[1.35rem] bg-muted ring-1 ring-border/50 transition-shadow duration-300 group-hover:shadow-lg group-hover:shadow-primary/5 group-hover:ring-primary/20">
         {coverImageUrl ? (
-          <img
+          // 图集封面和普通图片卡片共用同一套图片加载策略。
+          <LazyImage
             src={coverImageUrl}
             alt={name}
-            loading="lazy"
+            wrapperClassName="h-full w-full"
             className="h-full w-full object-cover transition-[filter] duration-300 group-hover:brightness-105"
           />
         ) : (
