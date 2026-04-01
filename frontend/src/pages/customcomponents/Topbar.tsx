@@ -22,12 +22,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "next-themes";
 import { useDeleteHistoryMutation, useHistoryListQuery, useRenameHistoryMutation } from "@/lib/media-query";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { ConfirmDialog } from "@/pages/customcomponents/ui/ConfirmDialog";
 import type { HistoryRecord } from "@/types/media";
 
 export default function Topbar(){
-    // 顶栏标题直接由 URL 中当前 history id 对应的会话记录推导出来。
+    // 顶栏标题直接由 URL 中当前 session id 对应的会话记录推导出来。
     const { data: historyRecords = [] } = useHistoryListQuery();
     const renameSearchSession = useRenameHistoryMutation();
     const deleteSearchSession = useDeleteHistoryMutation();
@@ -36,11 +36,13 @@ export default function Topbar(){
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [renameValue, setRenameValue] = useState("");
     const [searchParams] = useSearchParams();
+    const location = useLocation();
     const navigate = useNavigate();
     const GithubURL = "https://github.com/quark-sp/image-search-and-duplicate-by-CLIP";
     const {theme, setTheme, resolvedTheme} = useTheme();
     const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark");
-    const currentSessionId = searchParams.get("history");
+    const routeSessionId = /^\/search\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
+    const currentSessionId = routeSessionId ?? searchParams.get("history");
     const currentHistory = historyRecords.find((record: HistoryRecord) => record.id === currentSessionId) ?? null;
 
     function openRenameDialog(){

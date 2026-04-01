@@ -87,7 +87,7 @@ export default function History() {
 	};
 
 	const openSearchSession = (recordId: string) => {
-		navigate(`/?history=${recordId}`);
+		navigate(`/search/${recordId}`);
 	};
 
 	return (

@@ -61,7 +61,7 @@ export default function AppSidebar() {
   }
   function NewSearch() { navigate("/"); }
   function Searchhistory() { navigate("/history"); }
-  function openHistory(historyId: string) { navigate(`/?history=${historyId}`); }
+  function openHistory(historyId: string) { navigate(`/search/${historyId}`); }
   function openTrash() { navigate("/trash"); }
 
   return (

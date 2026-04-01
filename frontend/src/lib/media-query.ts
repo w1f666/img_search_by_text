@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-query";
 import { mediaApi } from "./media-api";
 import type {
+  AutoClassifyPayload,
   CreateGalleryPayload,
   CreateImagePayload,
   ListGalleriesPageParams,
@@ -31,6 +32,10 @@ export const mediaQueryKeys = {
   history: {
     lists: ["history", "list"] as const,
     list: (keyword = "") => ["history", "list", keyword] as const,
+  },
+  search: {
+    results: (sessionId: string) => ["search", "results", sessionId] as const,
+    detail: (sessionId: string, imageId: string) => ["search", "detail", sessionId, imageId] as const,
   },
 };
 
@@ -105,6 +110,35 @@ export const useSearchBestMatchMutation = () => {
     },
   });
 };
+
+export const useSearchTopKMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: SearchBestMatchPayload) => mediaApi.searchTopK(payload),
+    onSuccess: async (data) => {
+      queryClient.setQueryData(
+        mediaQueryKeys.search.results(data.searchSessionId),
+        data.results
+      );
+      await queryClient.invalidateQueries({ queryKey: mediaQueryKeys.history.lists });
+    },
+  });
+};
+
+export const useSearchSessionResultsQuery = (sessionId?: string) =>
+  useQuery({
+    queryKey: mediaQueryKeys.search.results(sessionId ?? ""),
+    queryFn: () => mediaApi.getSearchSessionResults(sessionId!),
+    enabled: Boolean(sessionId),
+  });
+
+export const useSearchImageDetailContextQuery = (sessionId?: string, imageId?: string) =>
+  useQuery({
+    queryKey: mediaQueryKeys.search.detail(sessionId ?? "", imageId ?? ""),
+    queryFn: () => mediaApi.getSearchImageDetailContext(sessionId!, imageId!),
+    enabled: Boolean(sessionId) && Boolean(imageId),
+  });
 
 export const useCreateGalleryMutation = () => {
   const queryClient = useQueryClient();
@@ -229,6 +263,18 @@ export const useDeleteHistoryMutation = () => {
     mutationFn: (sessionId: string) => mediaApi.deleteSearchSession(sessionId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: mediaQueryKeys.history.lists });
+    },
+  });
+};
+
+export const useAutoClassifyMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: AutoClassifyPayload) => mediaApi.autoClassifyImages(payload),
+    onSuccess: async () => {
+      await invalidateImageQueries(queryClient);
+      await invalidateGalleryQueries(queryClient);
     },
   });
 };

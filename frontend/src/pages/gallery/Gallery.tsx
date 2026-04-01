@@ -9,15 +9,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { FolderPen, FolderPlus, LoaderCircle, Trash2 } from "lucide-react";
-import { useCreateGalleryMutation, useDeleteGalleryMutation, useGalleryListQuery, useGalleriesPageQuery, useUpdateGalleryMutation } from "@/lib/media-query";
+import { CheckCircle2, FolderPen, FolderPlus, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
+import { useAutoClassifyMutation, useCreateGalleryMutation, useDeleteGalleryMutation, useGalleryListQuery, useGalleriesPageQuery, useUpdateGalleryMutation } from "@/lib/media-query";
 import { GalleryCard } from "../customcomponents/ui/gallerycard";
 import { ConfirmDialog } from "../customcomponents/ui/ConfirmDialog";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { FancySelect } from "../customcomponents/ui/FancySelect";
 import { PaginationBar } from "../customcomponents/ui/PaginationBar";
 import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
-import type { GalleryItem } from "@/types/media";
+import type { AutoClassifyResponse, GalleryItem } from "@/types/media";
 
 const PAGE_SIZE = 12;
 
@@ -43,6 +43,9 @@ export default function Gallery() {
   const createGallery = useCreateGalleryMutation();
   const updateGallery = useUpdateGalleryMutation();
   const deleteGallery = useDeleteGalleryMutation();
+  const autoClassify = useAutoClassifyMutation();
+  const [classifyResultOpen, setClassifyResultOpen] = useState(false);
+  const [classifyResult, setClassifyResult] = useState<AutoClassifyResponse | null>(null);
 
   useEffect(() => {
     // 排序和搜索改变后重置到第一页，保持分页语义正确。
@@ -104,6 +107,12 @@ export default function Gallery() {
   const isEditingPending = editingId ? busyGalleryIds.includes(editingId) : false;
   const isSubmitting = createGallery.isPending || updateGallery.isPending || isEditingPending;
 
+  const handleAutoClassify = async () => {
+    const response = await autoClassify.mutateAsync({ scope: "all-unclassified" });
+    setClassifyResult(response);
+    setClassifyResultOpen(true);
+  };
+
   const sortOptions = [
     { value: "created_at", label: "按创建时间", hint: "最新创建优先" },
     { value: "name", label: "按名称", hint: "按拼音顺序" },
@@ -125,10 +134,20 @@ export default function Gallery() {
             <span data-page-chip className="rounded-full px-3 py-1">已收录 {totalImageCount} 张</span>
           </div>
         </div>
-        <Button onClick={openCreateDialog}>
-          <FolderPlus />
-          新建相册
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => void handleAutoClassify()}
+            disabled={autoClassify.isPending || galleryList.length === 0}
+          >
+            {autoClassify.isPending ? <LoaderCircle className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+            智能分类
+          </Button>
+          <Button onClick={openCreateDialog}>
+            <FolderPlus />
+            新建相册
+          </Button>
+        </div>
       </section>
 
       <SearchToolbar
@@ -258,6 +277,66 @@ export default function Gallery() {
         tone="danger"
         onConfirm={handleDelete}
       />
-    </div>
+      {/* 智能分类结果弹窗 */}
+      <Dialog open={classifyResultOpen} onOpenChange={setClassifyResultOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="size-5 text-green-600" />
+              智能分类完成
+            </DialogTitle>
+            <DialogDescription>
+              已处理 {classifyResult?.totalProcessed ?? 0} 张图片
+            </DialogDescription>
+          </DialogHeader>
+          {classifyResult && (
+            <div className="space-y-3">
+              {classifyResult.classified.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">
+                    成功分类 {classifyResult.classified.length} 张
+                  </p>
+                  <div className="max-h-60 space-y-1.5 overflow-y-auto rounded-xl border border-border/60 bg-muted/30 p-3">
+                    {Object.entries(
+                      classifyResult.classified.reduce<Record<string, { galleryName: string; count: number; avgConfidence: number }>>(
+                        (acc, item) => {
+                          if (!acc[item.galleryId]) {
+                            acc[item.galleryId] = { galleryName: item.galleryName, count: 0, avgConfidence: 0 };
+                          }
+                          acc[item.galleryId].count += 1;
+                          acc[item.galleryId].avgConfidence += item.confidence;
+                          return acc;
+                        },
+                        {}
+                      )
+                    ).map(([galleryId, info]) => (
+                      <div
+                        key={galleryId}
+                        className="flex items-center justify-between rounded-lg bg-background px-3 py-2 text-sm"
+                      >
+                        <span className="font-medium">{info.galleryName}</span>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span>{info.count} 张</span>
+                          <span className="rounded-full bg-green-50 px-2 py-0.5 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                            {Math.round((info.avgConfidence / info.count) * 100)}% 置信度
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {classifyResult.skipped.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {classifyResult.skipped.length} 张图片无法确定分类，已跳过
+                </p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setClassifyResultOpen(false)}>确定</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>    </div>
   );
 }

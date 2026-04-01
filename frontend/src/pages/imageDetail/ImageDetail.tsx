@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { LazyImage } from "@/pages/customcomponents/ui/LazyImage";
 import { mediaApi } from "../../lib/media-api";
 import { preloadImageResource } from "@/lib/image-resource";
-import { useImageDetailContextQuery, useMoveImageToTrashMutation, useUpdateImageMutation } from "@/lib/media-query";
+import { useImageDetailContextQuery, useSearchImageDetailContextQuery, useMoveImageToTrashMutation, useUpdateImageMutation } from "@/lib/media-query";
 import { PageHeader } from "@/pages/customcomponents/ui/PageHeader";
 import { ImageGrid } from "@/pages/customcomponents/ui/ImageGrid";
 import { ImageCard } from "@/pages/customcomponents/ui/imagecard";
@@ -22,9 +22,11 @@ import type { ImageItem } from "@/types/media";
 
 export default function ImageDetail() {
   const navigate = useNavigate();
-  const { galleryId, imageid } = useParams<{ galleryId?: string; imageid: string }>();
-  // 详情页只发一个 query，后端或 mock 会把当前图、邻近图、相关图一次返回。
-  const detailQuery = useImageDetailContextQuery(imageid, galleryId);
+  const { galleryId, imageid, sessionId } = useParams<{ galleryId?: string; imageid: string; sessionId?: string }>();
+  // 搜索上下文和图集/全部上下文二选一，根据路由参数自动切换。
+  const standardDetailQuery = useImageDetailContextQuery(sessionId ? undefined : imageid, galleryId);
+  const searchDetailQuery = useSearchImageDetailContextQuery(sessionId, imageid);
+  const detailQuery = sessionId ? searchDetailQuery : standardDetailQuery;
   const updateImage = useUpdateImageMutation();
   const moveImageToTrash = useMoveImageToTrashMutation();
   const context = detailQuery.data ?? null;
@@ -38,24 +40,39 @@ export default function ImageDetail() {
     // 首屏展示当前图的同时，提前预热邻近图和相关图，切换详情时更顺滑。
     preloadImageResource(context.image.url);
 
-    if (context.previousImage) {
-      void mediaApi.prefetchImageDetailContext(context.previousImage.id, galleryId);
-      preloadImageResource(context.previousImage.url);
-    }
+    if (!sessionId) {
+      if (context.previousImage) {
+        void mediaApi.prefetchImageDetailContext(context.previousImage.id, galleryId);
+        preloadImageResource(context.previousImage.url);
+      }
 
-    if (context.nextImage) {
-      void mediaApi.prefetchImageDetailContext(context.nextImage.id, galleryId);
-      preloadImageResource(context.nextImage.url);
+      if (context.nextImage) {
+        void mediaApi.prefetchImageDetailContext(context.nextImage.id, galleryId);
+        preloadImageResource(context.nextImage.url);
+      }
+    } else {
+      if (context.previousImage) {
+        preloadImageResource(context.previousImage.url);
+      }
+      if (context.nextImage) {
+        preloadImageResource(context.nextImage.url);
+      }
     }
 
     context.relatedImages.forEach((entry: ImageItem) => {
       preloadImageResource(entry.thumbnailUrl ?? entry.url);
     });
-  }, [context, galleryId]);
+  }, [context, galleryId, sessionId]);
 
   const image = context?.image ?? null;
-  const backPath = galleryId ? `/gallery/${galleryId}` : "/all-images";
-  const backLabel = galleryId ? "返回当前图集" : "返回所有照片";
+  const backPath = sessionId ? `/search/${sessionId}` : galleryId ? `/gallery/${galleryId}` : "/all-images";
+  const backLabel = sessionId ? "返回搜索结果" : galleryId ? "返回当前图集" : "返回所有照片";
+
+  const getImagePath = (id: string) => {
+    if (sessionId) return `/search/${sessionId}/${id}`;
+    if (galleryId) return `/gallery/${galleryId}/${id}`;
+    return `/all-images/${id}`;
+  };
 
   const handleRemoveFromGallery = async () => {
     if (!image) {
@@ -119,7 +136,7 @@ export default function ImageDetail() {
                 variant="ghost"
                 size="sm"
                 disabled={!context.previousImage}
-                onClick={() => context.previousImage && navigate(galleryId ? `/gallery/${galleryId}/${context.previousImage.id}` : `/all-images/${context.previousImage.id}`)}
+                onClick={() => context.previousImage && navigate(getImagePath(context.previousImage.id))}
                 className="rounded-full"
               >
                 <ChevronLeft className="size-4" />
@@ -129,7 +146,7 @@ export default function ImageDetail() {
                 variant="ghost"
                 size="sm"
                 disabled={!context.nextImage}
-                onClick={() => context.nextImage && navigate(galleryId ? `/gallery/${galleryId}/${context.nextImage.id}` : `/all-images/${context.nextImage.id}`)}
+                onClick={() => context.nextImage && navigate(getImagePath(context.nextImage.id))}
                 className="rounded-full"
               >
                 下一张
@@ -214,7 +231,7 @@ export default function ImageDetail() {
           <div className="mb-5 flex items-end justify-between gap-4">
             <PageHeader
               title="相关图片"
-              description={image.galleryId ? "同一图集内的其他图片。" : "从全部活动图片中挑选的相关内容。"}
+              description={sessionId ? "当前搜索结果中的其他图片。" : image.galleryId ? "同一图集内的其他图片。" : "从全部活动图片中挑选的相关内容。"}
             />
           </div>
           <ImageGrid className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -222,7 +239,7 @@ export default function ImageDetail() {
               <ImageCard
                 key={entry.id}
                 image={entry}
-                onClick={() => navigate(entry.galleryId ? `/gallery/${entry.galleryId}/${entry.id}` : `/all-images/${entry.id}`)}
+                onClick={() => navigate(getImagePath(entry.id))}
               />
             ))}
           </ImageGrid>

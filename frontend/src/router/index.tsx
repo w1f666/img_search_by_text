@@ -32,6 +32,25 @@ const router = createBrowserRouter([
                 element: withSuspense(<Searchbar/>),
             },
             {
+                path: "search/:sessionId",
+                handle: {
+                    breadcrumb: () => "搜索结果"
+                },
+                children: [
+                    {
+                        index: true,
+                        element: withSuspense(<Searchbar/>),
+                    },
+                    {
+                        path: ":imageid",
+                        element: withSuspense(<ImageDetail/>),
+                        handle: {
+                            breadcrumb: () => "图片详情"
+                        }
+                    }
+                ]
+            },
+            {
                 path: "trash",
                 element: withSuspense(<Trash/>),
                 handle: {

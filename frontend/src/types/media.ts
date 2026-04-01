@@ -131,6 +131,29 @@ export interface SearchBestMatchResponse {
   searchSessionId: string | null;
 }
 
+export interface SearchTopKResponse {
+  results: ImageItem[];
+  searchSessionId: string;
+}
+
+export interface AutoClassifyPayload {
+  imageIds?: string[];
+  scope: "all-unclassified" | "selected";
+}
+
+export interface AutoClassifyResultItem {
+  imageId: string;
+  galleryId: string;
+  galleryName: string;
+  confidence: number;
+}
+
+export interface AutoClassifyResponse {
+  classified: AutoClassifyResultItem[];
+  skipped: string[];
+  totalProcessed: number;
+}
+
 export interface ImageDetailContext {
   image: ImageItem;
   previousImage: ImageItem | null;

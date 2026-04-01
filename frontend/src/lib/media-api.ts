@@ -1,5 +1,8 @@
 import { buildRequestParams, hasHttpBackend, request } from "@/lib/request";
 import type {
+  AutoClassifyPayload,
+  AutoClassifyResponse,
+  AutoClassifyResultItem,
   BackendGallery,
   BackendHistoryRecord,
   BackendImage,
@@ -17,6 +20,7 @@ import type {
   SearchBestMatchPayload,
   SearchBestMatchResponse,
   SearchQuery,
+  SearchTopKResponse,
   UpdateGalleryPayload,
   UpdateImagePayload,
 } from "@/types/media";
@@ -25,6 +29,7 @@ const wait = (ms = 120) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const DEFAULT_PAGE_SIZE = 12;
 const detailContextCache = new Map<string, ImageDetailContext | null>();
+const searchResultsStore = new Map<string, BackendImage[]>();
 
 const tokenise = (text: string) =>
   text
@@ -639,6 +644,54 @@ const runLocalBestMatch = ({
   return ranked[0] ?? null;
 };
 
+const runLocalTopK = (payload: SearchBestMatchPayload, topK: number): BackendImage[] => {
+  const sessionContext = getHistoryContext(payload.searchSessionId);
+  const normalizedText = payload.textQuery?.trim() ?? "";
+  const semanticText = [sessionContext, normalizedText].filter(Boolean).join(" ");
+  const semanticTokens = tokenise(semanticText);
+  const resolvedImageUrl = payload.imageUrl?.trim() ?? "";
+  const fileStem =
+    payload.referenceImageFile?.name.split(".")[0]?.toLowerCase() ??
+    resolvedImageUrl.split("/").pop()?.split(".")[0]?.toLowerCase() ??
+    "";
+  const strategy = payload.searchStrategy ?? "balanced";
+  const activeImages = database.images.filter((image) => image.status === "active");
+
+  if (activeImages.length === 0) {
+    return [];
+  }
+
+  const scored = activeImages.map((image) => {
+    const base = (hashString(`${image.id}-${semanticText}`) % 100) / 100;
+    const searchable = [image.filename, image.created_at, image.size_label].join(" ").toLowerCase();
+    const textOverlapWeight = strategy === "text-first" ? 1.8 : strategy === "image-first" ? 0.8 : 1.2;
+    const imagePrimaryBoost = strategy === "image-first" ? 3.2 : strategy === "text-first" ? 1.4 : 2.2;
+    const imageSecondaryBoost = strategy === "image-first" ? 1.2 : 0.8;
+
+    let overlap = 0;
+    semanticTokens.forEach((token) => {
+      if (searchable.includes(token)) {
+        overlap += textOverlapWeight;
+      }
+    });
+
+    let imageBoost = 0;
+    if (payload.type !== "text" && fileStem) {
+      if (searchable.includes(fileStem.slice(0, 8))) {
+        imageBoost += imagePrimaryBoost;
+      }
+      if (searchable.includes(fileStem.slice(-6))) {
+        imageBoost += imageSecondaryBoost;
+      }
+    }
+
+    return { image, score: base + overlap + imageBoost };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  return scored.slice(0, topK).map((entry) => entry.image);
+};
+
 const persistMockSearchHistory = (
   sessionId: string,
   payload: Pick<SearchBestMatchPayload, "type" | "textQuery" | "imageUrl" | "referencePreviewImage">,
@@ -763,6 +816,111 @@ export const mediaApi = {
     return {
       bestMatch: bestMatch ? toImageItem(bestMatch) : null,
       searchSessionId: bestMatch ? nextSessionId : payload.searchSessionId ?? null,
+    };
+  },
+
+  async searchTopK(payload: SearchBestMatchPayload): Promise<SearchTopKResponse> {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<{ results: BackendImage[]; search_session_id: string }>({
+          url: "/api/search/top-k",
+          method: "POST",
+          data: {
+            type: payload.type,
+            text_query: payload.textQuery?.trim() || undefined,
+            image_url: payload.imageUrl?.trim() || payload.referencePreviewImage?.url || undefined,
+            search_session_id: payload.searchSessionId ?? undefined,
+            top_k: payload.topK ?? 12,
+            search_strategy: payload.searchStrategy ?? "balanced",
+          },
+        });
+
+        const results = response.results.map(toImageItem);
+        searchResultsStore.set(response.search_session_id, response.results);
+        return { results, searchSessionId: response.search_session_id };
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
+    await wait(300);
+    const topK = payload.topK ?? 12;
+    const results = runLocalTopK(payload, topK);
+    const sessionId = payload.searchSessionId ?? createId("history");
+
+    searchResultsStore.set(sessionId, results);
+
+    if (results.length > 0) {
+      persistMockSearchHistory(
+        sessionId,
+        {
+          type: payload.type,
+          textQuery: payload.textQuery,
+          imageUrl: payload.imageUrl,
+          referencePreviewImage: payload.referencePreviewImage,
+        },
+        results[0]
+      );
+    }
+
+    return {
+      results: results.map(toImageItem),
+      searchSessionId: sessionId,
+    };
+  },
+
+  async getSearchSessionResults(sessionId: string): Promise<ImageItem[]> {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<{ results: BackendImage[] }>({
+          url: `/api/search/sessions/${encodeURIComponent(sessionId)}/results`,
+          method: "GET",
+        });
+
+        searchResultsStore.set(sessionId, response.results);
+        return response.results.map(toImageItem);
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
+    await wait();
+    const cached = searchResultsStore.get(sessionId);
+    if (cached) {
+      return cached.map(toImageItem);
+    }
+
+    const history = database.histories.find((h) => h.session_id === sessionId);
+    if (!history || history.turns.length === 0) {
+      return [];
+    }
+
+    const lastQuery = history.turns[history.turns.length - 1].query;
+    const regenerated = runLocalTopK(
+      {
+        type: lastQuery.type,
+        textQuery: lastQuery.type !== "image" ? (lastQuery as { textQuery: string }).textQuery : undefined,
+        imageUrl: lastQuery.type !== "text" ? (lastQuery as { imageUrl: string }).imageUrl : undefined,
+        searchSessionId: sessionId,
+      },
+      12
+    );
+    searchResultsStore.set(sessionId, regenerated);
+    return regenerated.map(toImageItem);
+  },
+
+  async getSearchImageDetailContext(sessionId: string, imageId: string): Promise<ImageDetailContext | null> {
+    const results = await this.getSearchSessionResults(sessionId);
+    const index = results.findIndex((r) => r.id === imageId);
+    if (index === -1) {
+      return null;
+    }
+
+    return {
+      image: results[index],
+      previousImage: index > 0 ? results[index - 1] : null,
+      nextImage: index < results.length - 1 ? results[index + 1] : null,
+      relatedImages: results.filter((_, i) => i !== index).slice(0, 8),
     };
   },
 
@@ -1304,6 +1462,72 @@ export const mediaApi = {
 
     await wait();
     database.histories = database.histories.filter((record) => record.session_id !== sessionId);
+  },
+
+  async autoClassifyImages(payload: AutoClassifyPayload): Promise<AutoClassifyResponse> {
+    if (hasHttpBackend) {
+      try {
+        const response = await request<{
+          classified: Array<{ image_id: string; gallery_id: string; gallery_name: string; confidence: number }>;
+          skipped: string[];
+          total_processed: number;
+        }>({
+          url: "/api/images/auto-classify",
+          method: "POST",
+          data: {
+            image_ids: payload.imageIds,
+            scope: payload.scope,
+          },
+        });
+
+        return {
+          classified: response.classified.map((item) => ({
+            imageId: item.image_id,
+            galleryId: item.gallery_id,
+            galleryName: item.gallery_name,
+            confidence: item.confidence,
+          })),
+          skipped: response.skipped,
+          totalProcessed: response.total_processed,
+        };
+      } catch {
+        // Fall through to local mock result.
+      }
+    }
+
+    // Mock: randomly assign unclassified images to galleries
+    await wait(800);
+    const galleries = database.galleries;
+    if (galleries.length === 0) {
+      return { classified: [], skipped: [], totalProcessed: 0 };
+    }
+
+    const targetImages =
+      payload.scope === "selected" && payload.imageIds
+        ? database.images.filter((img) => payload.imageIds!.includes(img.id))
+        : database.images.filter((img) => img.status === "active" && img.gallery_id == null);
+
+    const classified: AutoClassifyResultItem[] = [];
+    const skipped: string[] = [];
+
+    for (const img of targetImages) {
+      const gallery = galleries[Math.floor(Math.random() * galleries.length)];
+      const confidence = 0.5 + Math.random() * 0.5;
+      if (confidence > 0.4) {
+        img.gallery_id = gallery.id;
+        classified.push({
+          imageId: img.id,
+          galleryId: gallery.id,
+          galleryName: gallery.name,
+          confidence: Math.round(confidence * 100) / 100,
+        });
+      } else {
+        skipped.push(img.id);
+      }
+    }
+
+    syncGalleryImageCounts();
+    return { classified, skipped, totalProcessed: targetImages.length };
   },
 };
 
