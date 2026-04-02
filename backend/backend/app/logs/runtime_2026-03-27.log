@@ -1,0 +1,44 @@
+2026-03-27 01:14:28.952 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=2, Name=test1
+2026-03-27 01:22:35.659 | INFO     | app.core.clip_handler:__init__:35 - CLIP instance created. Device: cpu (Model not loaded yet)
+2026-03-27 01:22:42.142 | INFO     | app.core.clip_handler:_ensure_model_loaded:52 - CLIP model loaded successfully.
+2026-03-27 01:22:44.752 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:/stitp1/wh/picture/dog1.png - Adding image to database...
+2026-03-27 01:22:44.808 | WARNING  | app.core.utils:vector_check:93 - No similar images found in vector database.
+2026-03-27 01:22:44.928 | INFO     | app.core.db_handler.img_handler:add_img_to_database:63 - Image added successfully: ID=1, Path=D:/stitp1/wh/picture/dog1.png
+2026-03-27 01:24:36.028 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=2, Name=test1
+2026-03-27 01:25:47.567 | INFO     | app.core.clip_handler:__init__:35 - CLIP instance created. Device: cpu (Model not loaded yet)
+2026-03-27 01:25:54.087 | INFO     | app.core.clip_handler:_ensure_model_loaded:52 - CLIP model loaded successfully.
+2026-03-27 01:25:56.727 | INFO     | app.core.db_handler.img_handler:add_img_to_database:23 - current process image: D:/stitp1/wh/picture/dog1.png - Adding image to database...
+2026-03-27 01:25:56.752 | WARNING  | app.core.utils:vector_check:93 - No similar images found in vector database.
+2026-03-27 01:25:56.873 | INFO     | app.core.db_handler.img_handler:add_img_to_database:63 - Image added successfully: ID=1, Path=D:/stitp1/wh/picture/dog1.png
+2026-03-27 01:40:30.904 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=3, Name=test2
+2026-03-27 01:41:04.033 | INFO     | app.core.clip_handler:__init__:35 - CLIP instance created. Device: cpu (Model not loaded yet)
+2026-03-27 01:41:10.672 | INFO     | app.core.clip_handler:_ensure_model_loaded:52 - CLIP model loaded successfully.
+2026-03-27 01:41:12.927 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/dog1.png - Adding image to database...
+2026-03-27 01:41:12.928 | INFO     | app.core.utils:duplicate_check:131 - Duplicate detected by MD5: [1]
+2026-03-27 01:41:12.929 | INFO     | app.core.utils:phash_check:35 - Exact pHash match found: [1]
+2026-03-27 01:41:12.991 | INFO     | app.core.utils:vector_check:101 - Vector similarity detected: ID 1 score 4.76837158203125e-07
+2026-03-27 01:42:31.397 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/dog2.png - Adding image to database...
+2026-03-27 01:42:31.402 | INFO     | app.core.utils:vector_check:101 - Vector similarity detected: ID 1 score 0.1881263256072998
+2026-03-27 01:43:42.170 | INFO     | app.core.clip_handler:__init__:35 - CLIP instance created. Device: cpu (Model not loaded yet)
+2026-03-27 01:43:48.676 | INFO     | app.core.clip_handler:_ensure_model_loaded:52 - CLIP model loaded successfully.
+2026-03-27 01:43:51.380 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/dog2.png - Adding image to database...
+2026-03-27 01:43:51.480 | INFO     | app.core.utils:vector_check:101 - Vector similarity detected: ID 1 score 0.1881263256072998
+2026-03-27 01:44:23.813 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/banana.png - Adding image to database...
+2026-03-27 01:44:23.818 | INFO     | app.core.utils:vector_check:101 - Vector similarity detected: ID 1 score 0.2708694338798523
+2026-03-27 01:45:26.118 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/football.png - Adding image to database...
+2026-03-27 01:45:26.154 | INFO     | app.core.db_handler.img_handler:add_img_to_database:74 - Image added successfully: ID=2, Path=D:/stitp1/wh/picture/football.png
+2026-03-27 09:11:49.298 | INFO     | app.core.clip_handler:__init__:35 - CLIP instance created. Device: cpu (Model not loaded yet)
+2026-03-27 09:11:49.302 | ERROR    | app.core.img_process:image_process:31 - File not found: D:/stitp1/wh/picture/duck
+2026-03-27 09:12:16.523 | INFO     | app.core.clip_handler:_ensure_model_loaded:52 - CLIP model loaded successfully.
+2026-03-27 09:12:19.305 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/duck.png - Adding image to database...
+2026-03-27 09:12:19.431 | INFO     | app.core.utils:vector_check:101 - Vector similarity detected: ID 1 score 0.26787567138671875
+2026-03-27 09:12:34.696 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/apple.png - Adding image to database...
+2026-03-27 09:12:34.736 | INFO     | app.core.db_handler.img_handler:add_img_to_database:74 - Image added successfully: ID=3, Path=D:/stitp1/wh/picture/apple.png
+2026-03-27 09:14:37.750 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/lake.png - Adding image to database...
+2026-03-27 09:14:37.770 | INFO     | app.core.db_handler.img_handler:add_img_to_database:74 - Image added successfully: ID=4, Path=D:/stitp1/wh/picture/lake.png
+2026-03-27 09:35:52.227 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/lake.png - Adding image to database...
+2026-03-27 09:35:52.235 | INFO     | app.core.utils:vector_check:101 - Vector similarity detected: ID 4 score 1.1920928955078125e-07
+2026-03-27 09:37:22.652 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/sunrise.png - Adding image to database...
+2026-03-27 09:37:22.657 | INFO     | app.core.utils:vector_check:101 - Vector similarity detected: ID 4 score 0.19085896015167236
+2026-03-27 09:38:41.286 | INFO     | app.core.db_handler.img_handler:add_img_to_database:34 - current process image: D:/stitp1/wh/picture/building.png - Adding image to database...
+2026-03-27 09:38:41.312 | INFO     | app.core.db_handler.img_handler:add_img_to_database:74 - Image added successfully: ID=5, Path=D:/stitp1/wh/picture/building.png

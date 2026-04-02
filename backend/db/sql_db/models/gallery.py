@@ -16,14 +16,16 @@ class Gallery(Model):
     is_deleted = fields.BooleanField(default=False, description="画廊是否被删除")
     parent_id = fields.IntField(null=True, description="当前所在相册")
     deleted_parent_id = fields.IntField(null=True, description="删除前的 parent")
+    updated_time = fields.DatetimeField(null=True,description="更新时间")
+    cover_image_url = fields.CharField(max_length=255,null=True,description="相册封面")
     
-    #多对多关系
-    image = fields.ManyToManyField(
-        "models.Image",
-        related_name="galleries",
-        through="gallery_image",
-        description="画廊中的图片",
-    )
+    # #多对多关系
+    # image = fields.ManyToManyField(
+    #     "models.Image",
+    #     related_name="galleries",
+    #     through="gallery_image",
+    #     description="画廊中的图片",
+    # )
 
     class GalleryMeta:
         table = "gallery"

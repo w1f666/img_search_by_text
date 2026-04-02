@@ -138,11 +138,11 @@ async def duplicate_check(
         if phash_duplicates:
             for img_id in phash_duplicates:
                 all_duplicate_ids.add(img_id)
-        
+
         # 3.Vector:使用向量相似度检查重复
-        vector_duplicates = await vector_check(vector, threshold=0.5 , top_k=5)
+        vector_duplicates = await vector_check(vector, threshold=0.2 , top_k=5)
         if vector_duplicates:
             for img_id in vector_duplicates:
                 all_duplicate_ids.add(img_id)
-            
+    
     return list(all_duplicate_ids)
