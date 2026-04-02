@@ -2,7 +2,7 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, type UIMatch } from "react-router-dom";
 import MainLayout from "@/Layout/MainLayout";
 import { PageLoader } from "@/pages/customcomponents/ui/page-loader";
-import { RouteErrorPage } from "@/components/ErrorBoundary";
+import { ErrorBoundary, RouteErrorPage } from "@/components/ErrorBoundary";
 
 // 页面级组件改为按路由懒加载，首屏只下载当前访问路径真正需要的代码。
 const Searchbar = lazy(() => import("@/pages/Search/Searchbar"));
@@ -13,11 +13,13 @@ const AllImages = lazy(() => import("@/pages/allImages/AllImages"));
 const History = lazy(() => import("@/pages/History/History"));
 const ImageDetail = lazy(() => import("../pages/imageDetail/ImageDetail"));
 
-// 每个路由页面都包一层 Suspense，统一显示轻量级过渡 loading。
+// ErrorBoundary 兜底 chunk 加载失败和组件渲染异常，Suspense 处理加载中状态。
 const withSuspense = (element: React.ReactNode) => (
-    <Suspense fallback={<PageLoader />}>
-        {element}
-    </Suspense>
+    <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+            {element}
+        </Suspense>
+    </ErrorBoundary>
 );
 
 const router = createBrowserRouter([
