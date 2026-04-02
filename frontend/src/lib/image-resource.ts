@@ -1,0 +1,59 @@
+// 这里缓存的是“这个 URL 对应的图片资源是否已经被浏览器成功加载过”。
+const MAX_CACHE_SIZE = 500;
+const loadedImageUrls = new Map<string, true>();
+
+const touchCache = (url: string) => {
+  loadedImageUrls.delete(url);
+  loadedImageUrls.set(url, true);
+
+  if (loadedImageUrls.size > MAX_CACHE_SIZE) {
+    const oldest = loadedImageUrls.keys().next().value;
+    if (oldest !== undefined) {
+      loadedImageUrls.delete(oldest);
+    }
+  }
+};
+
+export const isImageResourceCached = (url?: string | null) => {
+  if (!url || !loadedImageUrls.has(url)) {
+    return false;
+  }
+  touchCache(url);
+  return true;
+};
+
+export const markImageResourceCached = (url?: string | null) => {
+  if (url) {
+    touchCache(url);
+  }
+};
+
+export const preloadImageResource = (url?: string | null) => {
+  if (!url || typeof window === "undefined") {
+    return Promise.resolve(false);
+  }
+
+  // 已经成功加载过的图片直接复用，不再重复创建 Image 对象。
+  if (loadedImageUrls.has(url)) {
+    touchCache(url);
+    return Promise.resolve(true);
+  }
+
+  return new Promise<boolean>((resolve) => {
+    const image = new window.Image();
+    image.decoding = "async";
+    image.onload = () => {
+      touchCache(url);
+      resolve(true);
+    };
+    image.onerror = () => {
+      resolve(false);
+    };
+    image.src = url;
+
+    if (image.complete && image.naturalWidth > 0) {
+      touchCache(url);
+      resolve(true);
+    }
+  });
+};

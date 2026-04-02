@@ -16,9 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useGalleryStore } from "@/store/useGalleryStore";
-
-
+import { useGalleryListQuery } from "@/lib/media-query";
+import type { GalleryItem } from "@/types/media";
 
 interface RouteHandle{
     breadcrumb: (match: UIMatch) => string;
@@ -26,14 +25,19 @@ interface RouteHandle{
 
 export default function CustomBreadcrumbs() {
     const matches = useMatches() as UIMatch<unknown,RouteHandle>[];
-    const galleryList = useGalleryStore((state) => state.galleryList);
+    // 面包屑里的 galleryId 需要再查一次图集列表，才能把 id 转成可读名称。
+    const { data: galleryList = [] } = useGalleryListQuery();
     const navigate = useNavigate();
     const crumbs = matches
     .filter((match) => Boolean(match.handle?.breadcrumb))
     .map((match) => {
+        // 路由 handle 先给出一个兜底名称，如果是动态 galleryId，再用真实图集名覆盖。
         const rawName = match.handle.breadcrumb(match)
-        const name = match.params.galleryId
-            ? galleryList.find((gallery) => gallery.id === match.params.galleryId)?.name ?? rawName
+        const shouldUseGalleryName = Boolean(
+            match.params.galleryId && rawName === match.params.galleryId
+        )
+        const name = shouldUseGalleryName
+            ? galleryList.find((gallery: GalleryItem) => gallery.id === match.params.galleryId)?.name ?? rawName
             : rawName
         return {
             name,
@@ -63,7 +67,7 @@ export default function CustomBreadcrumbs() {
                                     <DropdownMenuContent align="start">
                                         <DropdownMenuGroup>
                                             {galleryList.length > 0 ? (
-                                                galleryList.map((g) => (
+                                                galleryList.map((g: GalleryItem) => (
                                                     <DropdownMenuItem
                                                         key={g.id}
                                                         onClick={() => navigate(`/gallery/${g.id}`)}

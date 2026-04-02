@@ -11,10 +11,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Menu, Plus, Images, Image, Trash } from "lucide-react"
 import Sidebarhistory from "./ui/Sidebarhistory";
 import Sidebaricon from "./ui/Sidebariconbutton"
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { LucideIcon } from "lucide-react";
-import { useGalleryStore } from "@/store/useGalleryStore";
+import { useHistoryListQuery } from "@/lib/media-query";
 
 interface SidebarNavItemProps {
   onClick: () => void;
@@ -54,21 +53,15 @@ function SidebarNavItem({ onClick, label, icon, state, className }: SidebarNavIt
 export default function AppSidebar() {
   const { toggleSidebar, state } = useSidebar();
   const navigate = useNavigate();
-  const historyRecords = useGalleryStore((store) => store.historyRecords);
-  const initialized = useGalleryStore((store) => store.initialized);
-  const isInitializing = useGalleryStore((store) => store.isInitializing);
-  const initLibrary = useGalleryStore((store) => store.initLibrary);
+  // 侧边栏直接读共享 history query，不再维护独立的“历史副本”。
+  const { data: historyRecords = [], isLoading } = useHistoryListQuery();
 
-  useEffect(() => {
-    void initLibrary();
-  }, [initLibrary]);
-
-  function mytoggleSidebar() {
+  function handleToggleSidebar() {
     toggleSidebar();
   }
-  function NewSearch() { navigate("/"); }
-  function Searchhistory() { navigate("/history"); }
-  function openHistory(historyId: string) { navigate(`/?history=${historyId}`); }
+  function newSearch() { navigate("/"); }
+  function searchHistory() { navigate("/history"); }
+  function openHistory(historyId: string) { navigate(`/search/${historyId}`); }
   function openTrash() { navigate("/trash"); }
 
   return (
@@ -76,12 +69,12 @@ export default function AppSidebar() {
       <SidebarHeader className="!p-0 mt-2">
         <div className="flex items-center justify-between pt-2">
           <Sidebaricon
-            onClick={mytoggleSidebar}
+            onClick={handleToggleSidebar}
             label={state === "collapsed" ? "展开侧边栏" : "收起侧边栏"}
             icon={Menu}
           />
           <Sidebaricon
-            onClick={Searchhistory}
+            onClick={searchHistory}
             label="搜索历史"
             icon={Search}
             className={
@@ -91,15 +84,15 @@ export default function AppSidebar() {
             }
           />
         </div>
-        <SidebarNavItem onClick={NewSearch} label="发起新的搜索" icon={Plus} state={state} className="pt-2" />
+        <SidebarNavItem onClick={newSearch} label="发起新的搜索" icon={Plus} state={state} className="pt-2" />
         <SidebarNavItem onClick={() => navigate('/gallery')} label="图库" icon={Images} state={state} />
         <SidebarNavItem onClick={() => navigate('/all-images')} label="所有照片" icon={Image} state={state} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="test-md">搜索历史</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-md">搜索历史</SidebarGroupLabel>
           <div className="flex flex-col items-start justify-center gap-1 py-2 px-4">
-            {isInitializing && !initialized ? (
+            {isLoading ? (
               <div className="flex w-full max-w-xs flex-col gap-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-full" />

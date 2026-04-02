@@ -669,6 +669,73 @@
 }
 ```
 
+### 2.6 智能分类
+
+#### `POST /api/images/auto-classify`
+
+说明:
+
+- 根据已有图集名称，利用 CLIP 对未分类图片进行语义匹配，自动将图片归入最匹配的图集
+- `scope = "all-unclassified"` 时处理所有 `gallery_id = null` 且 `status = active` 的图片
+- `scope = "selected"` 时只处理 `image_ids` 中指定的图片
+- 后端流程：
+  1. 获取所有非删除图集的名称列表
+  2. 对每个图集名称用 CLIP text encoder 编码为文本向量
+  3. 对目标图片用 CLIP image encoder 编码为图像向量（若已有缓存向量可直接使用）
+  4. 计算每张图片向量与所有图集名称向量的余弦相似度
+  5. 取最高相似度的图集，若 confidence ≥ 阈值（建议 0.2）则归入该图集，否则跳过
+  6. 批量更新图片的 `gallery_id`
+  7. 同步更新各图集的 `image_count` 和 `cover_image_url`
+- 对外返回每张图片的分类结果，包含匹配到的图集 ID、名称和置信度
+
+请求 JSON:
+
+```json
+{
+  "image_ids": ["image_001", "image_002"],
+  "scope": "selected"
+}
+```
+
+```json
+{
+  "scope": "all-unclassified"
+}
+```
+
+响应 JSON:
+
+```json
+{
+  "classified": [
+    {
+      "image_id": "image_001",
+      "gallery_id": "gallery_001",
+      "gallery_name": "风景",
+      "confidence": 0.82
+    },
+    {
+      "image_id": "image_002",
+      "gallery_id": "gallery_003",
+      "gallery_name": "人像",
+      "confidence": 0.67
+    }
+  ],
+  "skipped": ["image_003"],
+  "total_processed": 3
+}
+```
+
+说明:
+
+- `classified` 数组：每一项表示一张被成功归类的图片
+  - `image_id`: 图片 ID
+  - `gallery_id`: 被分配到的图集 ID
+  - `gallery_name`: 图集名称（方便前端直接展示，无需二次查询）
+  - `confidence`: CLIP 相似度分数（0~1），越高表示语义匹配越好
+- `skipped` 数组：无法达到阈值的图片 ID 列表，这些图片保持未归类
+- `total_processed`: 总共处理的图片数量
+
 ## 3. 后端结构定义
 
 ### 3.1 分页

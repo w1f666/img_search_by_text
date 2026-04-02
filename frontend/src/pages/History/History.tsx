@@ -1,28 +1,16 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ImagePlus, Search, Sparkles, TimerReset } from "lucide-react";
-import { useGalleryStore } from "@/store/useGalleryStore";
+import { useHistoryListQuery } from "@/lib/media-query";
 import type { HistoryRecord, SearchQuery } from "@/types/media";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 
 function getTurnLabel(query: SearchQuery) {
 	return query.type === "text" ? query.textQuery : "图片搜索";
 	}
-
-function getTurnContextText(query: SearchQuery) {
-	if (query.type === "text") {
-		return query.textQuery;
-	}
-
-	if (query.type === "mixed") {
-		return query.textQuery;
-	}
-
-	return "";
-}
 
 function getSectionLabel(createdAt: string) {
 	const createdDate = new Date(createdAt);
@@ -60,49 +48,24 @@ function formatTime(createdAt: string) {
 }
 
 export default function History() {
-	const historyRecords = useGalleryStore((state) => state.historyRecords);
-	const initLibrary = useGalleryStore((state) => state.initLibrary);
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [query, setQuery] = useState(searchParams.get("query") ?? "");
 	const deferredQuery = useDeferredValue(query);
-
-	useEffect(() => {
-		void initLibrary();
-	}, [initLibrary]);
-
-	const filteredRecords = useMemo(() => {
-		const normalizedQuery = deferredQuery.trim().toLowerCase();
-
-		if (!normalizedQuery) {
-			return historyRecords;
-		}
-
-		return historyRecords.filter((record) =>
-			[
-				record.title,
-				...record.turns.map((turn) => {
-					const [queryValue, image] = turn;
-					return [getTurnLabel(queryValue), getTurnContextText(queryValue), image.filename].join(" ");
-				}),
-			]
-				.join(" ")
-				.toLowerCase()
-				.includes(normalizedQuery)
-		);
-	}, [deferredQuery, historyRecords]);
+	// 历史页的筛选直接作为 query 参数参与请求，页面本身不再做二次全量过滤。
+	const { data: historyRecords = [], isLoading } = useHistoryListQuery(deferredQuery || undefined);
 
 	const groupedRecords = useMemo(() => {
-		return filteredRecords.reduce<Record<string, HistoryRecord[]>>((groups, record) => {
+		return historyRecords.reduce<Record<string, HistoryRecord[]>>((groups, record) => {
 			const label = getSectionLabel(record.createdAt);
 			groups[label] = groups[label] ? [...groups[label], record] : [record];
 			return groups;
 		}, {});
-	}, [filteredRecords]);
+	}, [historyRecords]);
 
 	const selectedId = searchParams.get("selected");
 	const selectedRecord =
-		filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? null;
+		historyRecords.find((record) => record.id === selectedId) ?? historyRecords[0] ?? null;
 
 	const handleSearchChange = (value: string) => {
 		setQuery(value);
@@ -122,7 +85,7 @@ export default function History() {
 	};
 
 	const openSearchSession = (recordId: string) => {
-		navigate(`/?history=${recordId}`);
+		navigate(`/search/${recordId}`);
 	};
 
 	return (
@@ -132,7 +95,7 @@ export default function History() {
 					<PageHeader title="搜索历史" description="参考 Gemini 的历史搜索方式，支持按关键词快速筛选和回看。" />
 					<div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
 						<span className="rounded-full bg-muted px-3 py-1">共 {historyRecords.length} 条记录</span>
-						<span className="rounded-full bg-muted px-3 py-1">当前命中 {filteredRecords.length} 条</span>
+						<span className="rounded-full bg-muted px-3 py-1">当前命中 {historyRecords.length} 条</span>
 					</div>
 				</div>
 			</div>
@@ -149,7 +112,11 @@ export default function History() {
 
 			<div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_360px]">
 				<div className="space-y-6">
-					{Object.entries(groupedRecords).length > 0 ? (
+					{isLoading ? (
+						<div className="rounded-3xl border border-dashed bg-muted/30 px-6 py-16 text-center text-sm text-muted-foreground">
+							正在加载历史记录...
+						</div>
+					) : Object.entries(groupedRecords).length > 0 ? (
 						Object.entries(groupedRecords).map(([label, records]) => (
 							<section key={label} className="space-y-3">
 								<div className="flex items-center gap-2 px-1 text-sm font-medium text-muted-foreground">

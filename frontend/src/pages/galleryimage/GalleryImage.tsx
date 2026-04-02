@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,96 +11,52 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ImageMinus, ImagePlus, LoaderCircle, Trash2 } from "lucide-react";
+import { useCreateImageMutation, useGalleryListQuery, useImagesPageQuery, useMoveImageToTrashMutation, useUpdateImageMutation } from "@/lib/media-query";
 import { mediaApi } from "@/lib/media-api";
-import { useGalleryStore } from "@/store/useGalleryStore";
-import type { CreateImagePayload, ImageItem, PaginationMeta } from "@/types/media";
+import type { CreateImagePayload, GalleryItem, ImageItem } from "@/types/media";
 import { ImageCard } from "../customcomponents/ui/imagecard";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { PaginationBar } from "../customcomponents/ui/PaginationBar";
-import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
 
 const PAGE_SIZE = 12;
 
 export default function GalleryImage() {
   const navigate = useNavigate();
   const { galleryId } = useParams<{ galleryId: string }>();
-  const galleryList = useGalleryStore((state) => state.galleryList);
-  const initialized = useGalleryStore((state) => state.initialized);
-  const isInitializing = useGalleryStore((state) => state.isInitializing);
-  const isAddingImage = useGalleryStore((state) => state.isAddingImage);
-  const pendingImageIds = useGalleryStore((state) => state.pendingImageIds);
-  const initLibrary = useGalleryStore((state) => state.initLibrary);
-  const addImage = useGalleryStore((state) => state.addImage);
-  const updateImageGallery = useGalleryStore((state) => state.updateImageGallery);
-  const moveImageToTrash = useGalleryStore((state) => state.moveImageToTrash);
-  const [query, setQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
-  const [isPageLoading, setIsPageLoading] = useState(false);
-  const [images, setImages] = useState<ImageItem[]>([]);
-  const [pagination, setPagination] = useState<PaginationMeta | null>(null);
+  const [busyImageIds, setBusyImageIds] = useState<string[]>([]);
   const [form, setForm] = useState<CreateImagePayload>({
     filename: "",
     sizeLabel: "",
     url: "/gallery/landscapes/IMG_8203.JPG",
     galleryId: null,
   });
-  const deferredQuery = useDeferredValue(query);
-
-  useEffect(() => {
-    void initLibrary();
-  }, [initLibrary]);
+  // 这里同时依赖两个 query：一个拿当前图集信息，一个拿当前图集下的分页图片。
+  const { data: galleryList = [], isLoading: isGalleryLoading } = useGalleryListQuery();
+  const imagesQuery = useImagesPageQuery({
+    ...mediaApi.buildRange(page, PAGE_SIZE),
+    status: "active",
+    galleryId,
+  });
+  const addImage = useCreateImageMutation();
+  const updateImageGallery = useUpdateImageMutation();
+  const moveImageToTrash = useMoveImageToTrashMutation();
 
   const gallery = useMemo(
-    () => galleryList.find((item) => item.id === galleryId) ?? null,
+    () => galleryList.find((item: GalleryItem) => item.id === galleryId) ?? null,
     [galleryId, galleryList]
   );
-
-  const loadPage = useCallback(async (nextPage: number) => {
-    if (!galleryId) {
-      return;
-    }
-
-    setIsPageLoading(true);
-    try {
-      const range = mediaApi.buildRange(nextPage, PAGE_SIZE);
-      const response = await mediaApi.listImagesPage({
-        ...range,
-        status: "active",
-        galleryId,
-        query: deferredQuery || undefined,
-      });
-
-      setImages(response.items);
-      setPagination(response.meta);
-    } finally {
-      setIsPageLoading(false);
-    }
-  }, [deferredQuery, galleryId]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [deferredQuery, galleryId]);
-
-  useEffect(() => {
-    void loadPage(page);
-  }, [loadPage, page]);
-
-  useEffect(() => {
-    if (!galleryId) {
-      return;
-    }
-
-    setForm((current) => ({ ...current, galleryId }));
-  }, [galleryId]);
+  const images = imagesQuery.data?.items ?? [];
+  const pagination = imagesQuery.data?.meta ?? null;
 
   const handleCreateImage = async () => {
     if (!galleryId || !form.filename.trim() || !form.sizeLabel.trim()) {
       return;
     }
 
-    await addImage({
+    await addImage.mutateAsync({
       ...form,
       galleryId,
       filename: form.filename.trim(),
@@ -111,13 +67,12 @@ export default function GalleryImage() {
       filename: "",
       sizeLabel: "",
       url: "/gallery/landscapes/IMG_8203.JPG",
-      galleryId,
+      galleryId: null,
     });
     setPage(1);
-    await loadPage(1);
   };
 
-  if (initialized && !isInitializing && !gallery) {
+  if (!isGalleryLoading && !gallery) {
     return (
       <div data-page-shell className="flex flex-col gap-4 px-5 py-8 sm:px-6 lg:px-8">
         <PageHeader title="相册不存在" description="当前相册不存在，可能已被删除或当前链接无效。" />
@@ -150,35 +105,30 @@ export default function GalleryImage() {
         </div>
       </section>
 
-      <SearchToolbar
-        value={query}
-        onChange={setQuery}
-        placeholder="在当前相册中搜索图片"
-        className="rounded-[1.75rem]"
-      />
-
       {images.length > 0 ? (
         <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
           <ImageGrid className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            {images.map((image) => (
+            {images.map((image: ImageItem) => (
               <ImageCard
                 key={image.id}
                 image={image}
                 onClick={() => navigate(`/gallery/${galleryId}/${image.id}`)}
-                busy={pendingImageIds.includes(image.id)}
+                busy={busyImageIds.includes(image.id)}
                 actionMask={
                   <div className="flex gap-2">
                     <Button
                       size="icon-sm"
                       variant="secondary"
                       className="rounded-full bg-background/90"
-                      disabled={pendingImageIds.includes(image.id)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void updateImageGallery(image.id, null);
+                      disabled={busyImageIds.includes(image.id)}
+                      onClick={() => {
+                        setBusyImageIds((current) => [...current, image.id]);
+                        void updateImageGallery.mutateAsync({ id: image.id, payload: { galleryId: null } }).finally(() => {
+                          setBusyImageIds((current) => current.filter((id) => id !== image.id));
+                        });
                       }}
                     >
-                      {pendingImageIds.includes(image.id) ? (
+                      {busyImageIds.includes(image.id) ? (
                         <LoaderCircle className="size-4 animate-spin" />
                       ) : (
                         <ImageMinus className="size-4" />
@@ -188,13 +138,15 @@ export default function GalleryImage() {
                       size="icon-sm"
                       variant="destructive"
                       className="rounded-full"
-                      disabled={pendingImageIds.includes(image.id)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void moveImageToTrash(image.id);
+                      disabled={busyImageIds.includes(image.id)}
+                      onClick={() => {
+                        setBusyImageIds((current) => [...current, image.id]);
+                        void moveImageToTrash.mutateAsync(image.id).finally(() => {
+                          setBusyImageIds((current) => current.filter((id) => id !== image.id));
+                        });
                       }}
                     >
-                      {pendingImageIds.includes(image.id) ? (
+                      {busyImageIds.includes(image.id) ? (
                         <LoaderCircle className="size-4 animate-spin" />
                       ) : (
                         <Trash2 className="size-4" />
@@ -206,12 +158,12 @@ export default function GalleryImage() {
             ))}
           </ImageGrid>
           {pagination ? (
-            <PaginationBar meta={pagination} disabled={isPageLoading} onPageChange={setPage} />
+            <PaginationBar meta={pagination} disabled={imagesQuery.isFetching} onPageChange={setPage} />
           ) : null}
         </section>
       ) : (
         <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
-          {isPageLoading ? "正在加载图片..." : "这个相册里还没有图片，可以先添加一张。"}
+          {imagesQuery.isLoading || imagesQuery.isFetching ? "正在加载图片..." : "这个相册里还没有图片，可以先添加一张。"}
         </div>
       )}
 
@@ -220,7 +172,7 @@ export default function GalleryImage() {
           <DialogHeader>
             <DialogTitle>添加到相册</DialogTitle>
             <DialogDescription>
-              当前提交仍是本地 mock 逻辑，后续这里可以直接接入上传或入册接口。
+              当前提交会只失效当前相册和图片相关 query，不再整库刷新。
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -265,8 +217,8 @@ export default function GalleryImage() {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button disabled={isAddingImage} onClick={() => void handleCreateImage()}>
-              {isAddingImage ? <LoaderCircle className="size-4 animate-spin" /> : null}
+            <Button disabled={addImage.isPending} onClick={() => void handleCreateImage()}>
+              {addImage.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
               保存
             </Button>
           </DialogFooter>
