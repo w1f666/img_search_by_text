@@ -587,64 +587,8 @@ const getFilteredHistories = (keyword?: string) => {
   );
 };
 
-const runLocalBestMatch = ({
-  searchSessionId,
-  type,
-  textQuery,
-  imageUrl,
-  referenceImageFile,
-  searchStrategy,
-}: SearchBestMatchPayload): BackendImage | null => {
-  const sessionContext = getHistoryContext(searchSessionId);
-  const normalizedText = textQuery?.trim() ?? "";
-  const semanticText = [sessionContext, normalizedText].filter(Boolean).join(" ");
-  const semanticTokens = tokenise(semanticText);
-  const resolvedImageUrl = imageUrl?.trim() ?? "";
-  const fileStem = referenceImageFile?.name.split(".")[0]?.toLowerCase()
-    ?? resolvedImageUrl.split("/").pop()?.split(".")[0]?.toLowerCase()
-    ?? "";
-  const strategy = searchStrategy ?? "balanced";
-  const activeImages = database.images.filter((image) => image.status === "active");
-
-  if (activeImages.length === 0) {
-    return null;
-  }
-
-  const ranked = [...activeImages].sort((left, right) => {
-    const score = (image: BackendImage) => {
-      const base = (hashString(`${image.id}-${semanticText}`) % 100) / 100;
-      const searchable = [image.filename, image.created_at, image.size_label].join(" ").toLowerCase();
-      const textOverlapWeight = strategy === "text-first" ? 1.8 : strategy === "image-first" ? 0.8 : 1.2;
-      const imagePrimaryBoost = strategy === "image-first" ? 3.2 : strategy === "text-first" ? 1.4 : 2.2;
-      const imageSecondaryBoost = strategy === "image-first" ? 1.2 : 0.8;
-
-      let overlap = 0;
-      semanticTokens.forEach((token) => {
-        if (searchable.includes(token)) {
-          overlap += textOverlapWeight;
-        }
-      });
-
-      let imageBoost = 0;
-      if (type !== "text" && fileStem) {
-        if (searchable.includes(fileStem.slice(0, 8))) {
-          imageBoost += imagePrimaryBoost;
-        }
-        if (searchable.includes(fileStem.slice(-6))) {
-          imageBoost += imageSecondaryBoost;
-        }
-      }
-
-      return base + overlap + imageBoost;
-    };
-
-    return score(right) - score(left);
-  });
-
-  return ranked[0] ?? null;
-};
-
-const runLocalTopK = (payload: SearchBestMatchPayload, topK: number): BackendImage[] => {
+// 将评分逻辑统一抽取，bestMatch 和 topK 共用同一套排序算法。
+const buildScoringContext = (payload: SearchBestMatchPayload) => {
   const sessionContext = getHistoryContext(payload.searchSessionId);
   const normalizedText = payload.textQuery?.trim() ?? "";
   const semanticText = [sessionContext, normalizedText].filter(Boolean).join(" ");
@@ -655,41 +599,56 @@ const runLocalTopK = (payload: SearchBestMatchPayload, topK: number): BackendIma
     resolvedImageUrl.split("/").pop()?.split(".")[0]?.toLowerCase() ??
     "";
   const strategy = payload.searchStrategy ?? "balanced";
-  const activeImages = database.images.filter((image) => image.status === "active");
+  return { semanticText, semanticTokens, fileStem, type: payload.type, strategy };
+};
 
+const scoreImage = (
+  image: BackendImage,
+  ctx: ReturnType<typeof buildScoringContext>,
+): number => {
+  const base = (hashString(`${image.id}-${ctx.semanticText}`) % 100) / 100;
+  const searchable = [image.filename, image.created_at, image.size_label].join(" ").toLowerCase();
+  const textOverlapWeight = ctx.strategy === "text-first" ? 1.8 : ctx.strategy === "image-first" ? 0.8 : 1.2;
+  const imagePrimaryBoost = ctx.strategy === "image-first" ? 3.2 : ctx.strategy === "text-first" ? 1.4 : 2.2;
+  const imageSecondaryBoost = ctx.strategy === "image-first" ? 1.2 : 0.8;
+
+  let overlap = 0;
+  ctx.semanticTokens.forEach((token) => {
+    if (searchable.includes(token)) {
+      overlap += textOverlapWeight;
+    }
+  });
+
+  let imageBoost = 0;
+  if (ctx.type !== "text" && ctx.fileStem) {
+    if (searchable.includes(ctx.fileStem.slice(0, 8))) {
+      imageBoost += imagePrimaryBoost;
+    }
+    if (searchable.includes(ctx.fileStem.slice(-6))) {
+      imageBoost += imageSecondaryBoost;
+    }
+  }
+
+  return base + overlap + imageBoost;
+};
+
+const rankImages = (payload: SearchBestMatchPayload, limit: number): BackendImage[] => {
+  const activeImages = database.images.filter((image) => image.status === "active");
   if (activeImages.length === 0) {
     return [];
   }
-
-  const scored = activeImages.map((image) => {
-    const base = (hashString(`${image.id}-${semanticText}`) % 100) / 100;
-    const searchable = [image.filename, image.created_at, image.size_label].join(" ").toLowerCase();
-    const textOverlapWeight = strategy === "text-first" ? 1.8 : strategy === "image-first" ? 0.8 : 1.2;
-    const imagePrimaryBoost = strategy === "image-first" ? 3.2 : strategy === "text-first" ? 1.4 : 2.2;
-    const imageSecondaryBoost = strategy === "image-first" ? 1.2 : 0.8;
-
-    let overlap = 0;
-    semanticTokens.forEach((token) => {
-      if (searchable.includes(token)) {
-        overlap += textOverlapWeight;
-      }
-    });
-
-    let imageBoost = 0;
-    if (payload.type !== "text" && fileStem) {
-      if (searchable.includes(fileStem.slice(0, 8))) {
-        imageBoost += imagePrimaryBoost;
-      }
-      if (searchable.includes(fileStem.slice(-6))) {
-        imageBoost += imageSecondaryBoost;
-      }
-    }
-
-    return { image, score: base + overlap + imageBoost };
-  });
-
+  const ctx = buildScoringContext(payload);
+  const scored = activeImages.map((image) => ({ image, score: scoreImage(image, ctx) }));
   scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK).map((entry) => entry.image);
+  return scored.slice(0, limit).map((entry) => entry.image);
+};
+
+const runLocalBestMatch = (payload: SearchBestMatchPayload): BackendImage | null => {
+  return rankImages(payload, 1)[0] ?? null;
+};
+
+const runLocalTopK = (payload: SearchBestMatchPayload, topK: number): BackendImage[] => {
+  return rankImages(payload, topK);
 };
 
 const persistMockSearchHistory = (

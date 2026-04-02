@@ -18,6 +18,7 @@ import {
   useImagesPageQuery,
   useMoveImageToTrashMutation,
 } from "@/lib/media-query";
+import { mediaApi } from "@/lib/media-api";
 import type { AutoClassifyResponse, CreateImagePayload, ImageItem } from "@/types/media";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
 import { PaginationBar } from "../customcomponents/ui/PaginationBar";
@@ -40,8 +41,7 @@ export default function AllImages() {
   // 页面状态只保留筛选和弹窗；真正的数据列表交给 React Query 缓存。
   const { data: galleryList = [] } = useGalleryListQuery();
   const imagesQuery = useImagesPageQuery({
-    start: (page - 1) * PAGE_SIZE + 1,
-    end: page * PAGE_SIZE,
+    ...mediaApi.buildRange(page, PAGE_SIZE),
     status: "active",
     galleryId: undefined,
   });

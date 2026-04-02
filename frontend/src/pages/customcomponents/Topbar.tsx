@@ -38,7 +38,7 @@ export default function Topbar(){
     const [searchParams] = useSearchParams();
     const location = useLocation();
     const navigate = useNavigate();
-    const GithubURL = "https://github.com/quark-sp/image-search-and-duplicate-by-CLIP";
+    const githubUrl = "https://github.com/quark-sp/image-search-and-duplicate-by-CLIP";
     const {theme, setTheme, resolvedTheme} = useTheme();
     const isDark = theme === "dark" || (theme === "system" && resolvedTheme === "dark");
     const routeSessionId = /^\/search\/([^/]+)/.exec(location.pathname)?.[1] ?? null;
@@ -55,7 +55,7 @@ export default function Topbar(){
         setMenuOpen(false);
     }
 
-    async function RenameChat(){
+    async function renameChat(){
         if (!currentSessionId) {
             return;
         }
@@ -70,7 +70,7 @@ export default function Topbar(){
         setRenameOpen(false);
     }
 
-    async function Deletechat(){
+    async function deleteChat(){
         if (!currentSessionId) {
             return;
         }
@@ -81,7 +81,7 @@ export default function Topbar(){
     }
 
     return(
-        <div data-app-topbar className="relative z-10 flex h-16 items-center justify-between px-4 pt-3 backdrop-blur">
+        <header data-app-topbar className="relative z-10 flex h-16 items-center justify-between px-4 pt-3 backdrop-blur">
             <nav aria-label="Breadcrumb">
                 <Breadcrumb />
             </nav>
@@ -109,7 +109,7 @@ export default function Topbar(){
                         className="group relative h-6 w-6 overflow-hidden rounded-full border border-transparent bg-slate-100 transition hover:bg-slate-200 hover:text-slate-900 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-zinc-100 dark:text-zinc-300 text-slate-600"
                         asChild
                     >
-                        <a href={GithubURL}
+                        <a href={githubUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                         >
@@ -186,7 +186,7 @@ export default function Topbar(){
                         <Button variant="outline" onClick={() => setRenameOpen(false)}>
                             取消
                         </Button>
-                        <Button disabled={renameSearchSession.isPending || !renameValue.trim()} onClick={() => void RenameChat()}>
+                        <Button disabled={renameSearchSession.isPending || !renameValue.trim()} onClick={() => void renameChat()}>
                             {renameSearchSession.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
                             保存名称
                         </Button>
@@ -203,8 +203,8 @@ export default function Topbar(){
                 confirmLabel="确认删除"
                 pending={deleteSearchSession.isPending}
                 tone="danger"
-                onConfirm={Deletechat}
+                onConfirm={deleteChat}
             />
-        </div>
+        </header>
     )
 }

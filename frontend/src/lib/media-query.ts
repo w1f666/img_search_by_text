@@ -99,18 +99,6 @@ export const useImageDetailContextQuery = (imageId?: string, galleryId?: string)
     enabled: Boolean(imageId),
   });
 
-export const useSearchBestMatchMutation = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (payload: SearchBestMatchPayload) => mediaApi.searchBestMatch(payload),
-    onSuccess: async () => {
-      // 搜索会新增或更新会话，所以只让历史相关 query 失效即可。
-      await queryClient.invalidateQueries({ queryKey: mediaQueryKeys.history.lists });
-    },
-  });
-};
-
 export const useSearchTopKMutation = () => {
   const queryClient = useQueryClient();
 

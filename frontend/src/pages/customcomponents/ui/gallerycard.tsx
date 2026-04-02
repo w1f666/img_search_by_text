@@ -14,13 +14,16 @@ export function GalleryCard({
 }: GalleryItem & { actionSlot?: React.ReactNode; busy?: boolean }) {
   const navigate = useNavigate();
 
+  const handleClick = () => {
+    if (!busy) {
+      navigate(`/gallery/${id}`);
+    }
+  };
+
   return (
-    <div
-      onClick={() => {
-        if (!busy) {
-          navigate(`/gallery/${id}`);
-        }
-      }}
+    <article
+      aria-label={`打开图集 ${name}`}
+      onClick={handleClick}
       className={`group rounded-[1.75rem] border border-border/60 bg-card/80 p-3 shadow-sm transition-transform duration-300 ease-out active:scale-[0.95] ${
         busy ? "cursor-progress" : "cursor-pointer hover:scale-[0.97]"
       }`}
@@ -68,6 +71,6 @@ export function GalleryCard({
           </div>
         ) : null}
       </div>
-    </div>
+    </article>
   );
 }

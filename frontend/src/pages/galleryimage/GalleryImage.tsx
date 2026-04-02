@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { ImageMinus, ImagePlus, LoaderCircle, Trash2 } from "lucide-react";
 import { useCreateImageMutation, useGalleryListQuery, useImagesPageQuery, useMoveImageToTrashMutation, useUpdateImageMutation } from "@/lib/media-query";
+import { mediaApi } from "@/lib/media-api";
 import type { CreateImagePayload, GalleryItem, ImageItem } from "@/types/media";
 import { ImageCard } from "../customcomponents/ui/imagecard";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
@@ -35,8 +36,7 @@ export default function GalleryImage() {
   // 这里同时依赖两个 query：一个拿当前图集信息，一个拿当前图集下的分页图片。
   const { data: galleryList = [], isLoading: isGalleryLoading } = useGalleryListQuery();
   const imagesQuery = useImagesPageQuery({
-    start: (page - 1) * PAGE_SIZE + 1,
-    end: page * PAGE_SIZE,
+    ...mediaApi.buildRange(page, PAGE_SIZE),
     status: "active",
     galleryId,
   });

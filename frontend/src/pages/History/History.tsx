@@ -55,19 +55,17 @@ export default function History() {
 	// 历史页的筛选直接作为 query 参数参与请求，页面本身不再做二次全量过滤。
 	const { data: historyRecords = [], isLoading } = useHistoryListQuery(deferredQuery || undefined);
 
-	const filteredRecords = useMemo(() => historyRecords, [historyRecords]);
-
 	const groupedRecords = useMemo(() => {
-		return filteredRecords.reduce<Record<string, HistoryRecord[]>>((groups, record) => {
+		return historyRecords.reduce<Record<string, HistoryRecord[]>>((groups, record) => {
 			const label = getSectionLabel(record.createdAt);
 			groups[label] = groups[label] ? [...groups[label], record] : [record];
 			return groups;
 		}, {});
-	}, [filteredRecords]);
+	}, [historyRecords]);
 
 	const selectedId = searchParams.get("selected");
 	const selectedRecord =
-		filteredRecords.find((record) => record.id === selectedId) ?? filteredRecords[0] ?? null;
+		historyRecords.find((record) => record.id === selectedId) ?? historyRecords[0] ?? null;
 
 	const handleSearchChange = (value: string) => {
 		setQuery(value);
@@ -97,7 +95,7 @@ export default function History() {
 					<PageHeader title="搜索历史" description="参考 Gemini 的历史搜索方式，支持按关键词快速筛选和回看。" />
 					<div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
 						<span className="rounded-full bg-muted px-3 py-1">共 {historyRecords.length} 条记录</span>
-						<span className="rounded-full bg-muted px-3 py-1">当前命中 {filteredRecords.length} 条</span>
+						<span className="rounded-full bg-muted px-3 py-1">当前命中 {historyRecords.length} 条</span>
 					</div>
 				</div>
 			</div>

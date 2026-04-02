@@ -1,4 +1,5 @@
 import { ThemeProvider } from "next-themes"
+import { Toaster } from "sonner"
 import router from "./router"
 import { RouterProvider } from "react-router-dom"
 function App() {
@@ -11,6 +12,7 @@ function App() {
       storageKey="vite-ui-theme"
     >
       <RouterProvider router={router} />
+      <Toaster richColors position="top-right" />
     </ThemeProvider>
   )
 }

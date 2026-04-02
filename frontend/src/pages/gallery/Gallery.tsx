@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, FolderPen, FolderPlus, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
 import { useAutoClassifyMutation, useCreateGalleryMutation, useDeleteGalleryMutation, useGalleryListQuery, useGalleriesPageQuery, useUpdateGalleryMutation } from "@/lib/media-query";
+import { mediaApi } from "@/lib/media-api";
 import { GalleryCard } from "../customcomponents/ui/gallerycard";
 import { ConfirmDialog } from "../customcomponents/ui/ConfirmDialog";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
@@ -34,8 +35,7 @@ export default function Gallery() {
   // 列表分页、搜索和排序全部走 query key，参数变化就自动请求新数据。
   const { data: galleryList = [] } = useGalleryListQuery();
   const galleriesQuery = useGalleriesPageQuery({
-    start: (page - 1) * PAGE_SIZE + 1,
-    end: page * PAGE_SIZE,
+    ...mediaApi.buildRange(page, PAGE_SIZE),
     query: deferredQuery || undefined,
     sortBy: sortMode,
     sortOrder: "desc",
@@ -337,6 +337,7 @@ export default function Gallery() {
             <Button onClick={() => setClassifyResultOpen(false)}>确定</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>    </div>
+      </Dialog>    
+      </div>
   );
 }

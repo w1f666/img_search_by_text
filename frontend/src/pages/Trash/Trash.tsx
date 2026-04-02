@@ -17,6 +17,23 @@ export default function Trash() {
   const [busyImageIds, setBusyImageIds] = useState<string[]>([]);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
 
+  const withBusy = async (imageId: string, action: () => Promise<unknown>) => {
+    setBusyImageIds((current) => [...current, imageId]);
+    try {
+      await action();
+    } finally {
+      setBusyImageIds((current) => current.filter((id) => id !== imageId));
+    }
+  };
+
+  const handleRestore = (imageId: string) => {
+    void withBusy(imageId, () => restoreImage.mutateAsync(imageId));
+  };
+
+  const handlePermanentDelete = (imageId: string) => {
+    void withBusy(imageId, () => permanentlyDeleteImage.mutateAsync(imageId));
+  };
+
   const handleClearTrash = async () => {
     if (!trashImages.length) {
       return;
@@ -54,10 +71,24 @@ export default function Trash() {
               busy={busyImageIds.includes(img.id)}
               actionMask={
                 <div className="flex gap-2">
-                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" disabled={busyImageIds.includes(img.id)} onClick={() => { setBusyImageIds((current) => [...current, img.id]); void restoreImage.mutateAsync(img.id).finally(() => setBusyImageIds((current) => current.filter((id) => id !== img.id))); }}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40"
+                    disabled={busyImageIds.includes(img.id)}
+                    aria-label="恢复图片"
+                    onClick={() => handleRestore(img.id)}
+                  >
                     {busyImageIds.includes(img.id) ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />}
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-red-500/80 text-white hover:bg-red-500" disabled={busyImageIds.includes(img.id)} onClick={() => { setBusyImageIds((current) => [...current, img.id]); void permanentlyDeleteImage.mutateAsync(img.id).finally(() => setBusyImageIds((current) => current.filter((id) => id !== img.id))); }}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-full bg-red-500/80 text-white hover:bg-red-500"
+                    disabled={busyImageIds.includes(img.id)}
+                    aria-label="永久删除"
+                    onClick={() => handlePermanentDelete(img.id)}
+                  >
                     {busyImageIds.includes(img.id) ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                   </Button>
                 </div>

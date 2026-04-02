@@ -20,7 +20,8 @@ export function ImageCard({ image, onClick, actionMask, busy = false }: ImageCar
   };
 
   return (
-    <div 
+    <article
+      aria-label={image.filename}
       className={`group rounded-[1.6rem] border border-border/60 bg-card/80 p-3 shadow-sm transition-transform duration-300 ease-out active:scale-[0.95] ${
         busy ? "cursor-progress" : isInteractive ? "cursor-pointer hover:scale-[0.97]" : "cursor-default"
       }`}
@@ -47,7 +48,7 @@ export function ImageCard({ image, onClick, actionMask, busy = false }: ImageCar
               {actionMask}
             </div>
           ) : (
-            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" onClick={(e) => { e.stopPropagation(); }}>
+            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-white/20 text-white hover:bg-white/40" aria-label="查看详情" onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
               <Maximize2 className="h-4 w-4" />
             </Button>
           )}
@@ -64,6 +65,6 @@ export function ImageCard({ image, onClick, actionMask, busy = false }: ImageCar
           <p className="text-xs text-muted-foreground">{image.createdAt}</p>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

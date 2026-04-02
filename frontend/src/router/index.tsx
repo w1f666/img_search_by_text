@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, type UIMatch } from "react-router-dom";
 import MainLayout from "@/Layout/MainLayout";
 import { PageLoader } from "@/pages/customcomponents/ui/page-loader";
+import { RouteErrorPage } from "@/components/ErrorBoundary";
 
 // 页面级组件改为按路由懒加载，首屏只下载当前访问路径真正需要的代码。
 const Searchbar = lazy(() => import("@/pages/Search/Searchbar"));
@@ -23,6 +24,7 @@ const router = createBrowserRouter([
     {
         path: "/",
         element: <MainLayout/>,
+        errorElement: <RouteErrorPage />,
         handle: {
                     breadcrumb: () => "首页"
                 },
