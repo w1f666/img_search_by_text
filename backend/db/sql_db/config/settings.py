@@ -22,6 +22,7 @@ TORTOISE_ORM = {
             "models": [
                 "db.sql_db.models.image",
                 "db.sql_db.models.gallery",
+                "db.sql_db.models.history",
             ],
             "default_connection": "default",
         }

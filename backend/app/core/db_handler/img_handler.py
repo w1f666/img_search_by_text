@@ -5,14 +5,14 @@ from datetime import datetime
 from app.logs.config import logger
 from app.core.utils import split_phash
 from app.core.utils import duplicate_check
-
     
 async def add_img_to_database(
     img_path: str, 
     img_hash: str,
     phash: str, 
     vector: List[float],
-    strict: bool#如果为TRUE，则在添加前会检查感知哈希以防止重复，CLIP向量相似度检查
+    strict: bool,#如果为TRUE，则在添加前会检查感知哈希以防止重复，CLIP向量相似度检查
+    thumbnail_path: str = None
 ) -> Image | List[int]:
     """
     将图片元数据存入 SQLite，向量存入 ChromaDB。
@@ -35,6 +35,7 @@ async def add_img_to_database(
     #存入SQLite数据库,切分用于计算汉明距离
     new_img_record = await Image.create(
         file_path=img_path,
+        thumbnail_path=thumbnail_path,
         file_hash=img_hash,
         p_hash=phash,
         upload_time=datetime.now(),
@@ -77,13 +78,20 @@ async def search_similar_images(
         return similar_images  # 如果没有结果，返回空列表
     
     for dist, img_id in zip(results['distances'][0], results['ids'][0]):  
-        image_url= await Image.get_or_none(id=img_id)
-        similar_images.append({
-            "image_id": img_id,
-            "distance": dist,
-            "image_url": image_url
-        })
-
+        image= await Image.get_or_none(id=img_id)
+        
+        if image:
+            filename = image.file_path.split("/")[-1].split("\\")[-1] if image.file_path else "unknown"
+           
+            similar_images.append({
+                "id": image.id,
+                "filename": filename,
+                "image_url": image.file_path,  
+                "thumbnail_url": image.thumbnail_path if image.thumbnail_path else image.file_path,
+                "distance": dist,
+                "gallery_id": getattr(image, "gallery_id", "unknown")
+            })
+            
     return similar_images
 
 async def delete_image_by_path(image_path: str) -> bool:

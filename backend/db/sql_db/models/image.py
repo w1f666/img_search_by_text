@@ -14,6 +14,9 @@ class Image(Model):
     )
     file_path = fields.CharField(max_length=255, 
                                  description="图片url")
+    thumbnail_path = fields.CharField(max_length=255, 
+                                      null=True, 
+                                      description="缩略图的前端可访问路由地址")
     file_hash = fields.CharField(
         max_length=64, 
         unique=True, 

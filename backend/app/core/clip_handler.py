@@ -115,23 +115,8 @@ class CLIPHandler:
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
-        #确定长短边的长度    
-        width,height = image.size
-        short_side = min(height,width)
-        long_side = max(height,width)
-        
-        resize_side = int(size * long_side / short_side)
-        width,height = (resize_side, size) if width>height else (size, resize_side)
-        
-        #使用BICUBIC进行缩放，保持宽高比的同时缩放到最短边为size
-        image = image.resize((width, height), Image.Resampling.BICUBIC)
-        
-        #中心裁剪
-        left = (width - size) / 2
-        top = (height - size) / 2
-        right = left + size
-        bottom = top + size
-        image = image.crop((left, top, right, bottom))
+        # Chinese-CLIP 官方预处理是直接将图片 resize 到 (336, 336) 作为输入，不进行 CenterCrop（等比缩放+裁剪）
+        image = image.resize((size, size), Image.Resampling.BICUBIC)
         
         # 压缩到0-1范围的numpy数组，并转置为CHW格式
         img_array = np.array(image).astype(np.float32) / 255.0

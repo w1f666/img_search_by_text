@@ -1,10 +1,6 @@
 [
   {
     "type": "sqlite",
-    "path": "d:\\code\\ProjectDemo\\imageserch\\DEMO\\CI_new\\backend\\app\\db\\sql_db\\storage\\db.sqlite3"
-  },
-  {
-    "type": "sqlite",
     "path": "d:\\code\\ProjectDemo\\imageserch\\DEMO\\CI_new\\backend\\db\\sql_db\\storage\\db.sqlite3"
   }
 ]

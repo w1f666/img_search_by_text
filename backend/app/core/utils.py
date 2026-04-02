@@ -130,7 +130,7 @@ async def duplicate_check(
         for img_id in md5_matches:
             #依旧不用管这个报错
             all_duplicate_ids.add(img_id)
-    if strict:
+    if strict and not md5_matches:
         # 2.pHash:使用感知哈希检查重复
         phash_duplicates = await phash_check(phash)
         if phash_duplicates:
@@ -138,7 +138,7 @@ async def duplicate_check(
                 all_duplicate_ids.add(img_id)
         
         # 3.Vector:使用向量相似度检查重复
-        vector_duplicates = await vector_check(vector, threshold=0.5 , top_k=5)
+        vector_duplicates = await vector_check(vector, threshold=0.33 , top_k=5)
         if vector_duplicates:
             for img_id in vector_duplicates:
                 all_duplicate_ids.add(img_id)
