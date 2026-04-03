@@ -45,8 +45,8 @@ def image_process(
         with Image.open(img_path) as img:
             phash = str(imagehash.phash(img))
             
-            # 使用算出的 md5 作为名字直接生成缩略图
-            thumb_url = generate_thumbnail_from_img(img, file_hash)
+            # # 使用算出的 md5 作为名字直接生成缩略图
+            # thumb_url = generate_thumbnail_from_img(img, file_hash)
             
         clip_vector = clip.image_extract(img_path)
 
@@ -54,7 +54,6 @@ def image_process(
             "md5": file_hash, 
             "phash": phash, 
             "clip_vector": clip_vector,
-            "thumbnail_url": thumb_url
         }
 
     except FileNotFoundError:

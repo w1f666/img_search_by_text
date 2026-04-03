@@ -78,7 +78,6 @@ async def create_image_api(request: CreateImageRequest):
         "deleted_at": image.deleted_at.isoformat() if image.deleted_at else None
     }
 
-
 # 【new2.4-1】获取全部图片的接口
 @img_manage_router.get("/api/images/all")
 async def list_images_all_api(

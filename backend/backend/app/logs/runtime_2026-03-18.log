@@ -1,5 +1,0 @@
-2026-03-18 00:49:14.556 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:366 - Image ID 3 added to Gallery ID 3 successfully.
-2026-03-18 00:49:14.566 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:366 - Image ID 4 added to Gallery ID 3 successfully.
-2026-03-18 00:49:14.570 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:370 - Gallery ID 3 image count updated to 3.
-2026-03-18 02:16:59.268 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:392 - Image ID 4 added to Gallery ID 2 successfully.
-2026-03-18 02:16:59.271 | INFO     | app.core.db_handler.gallery_handler:batch_add_images_to_gallery:396 - Gallery ID 2 image count updated to 2.

@@ -235,16 +235,17 @@ async def list_trash_images_api(
     items = []
 
     for img in images:
+        
+        g = await img.gallery
         items.append({
             "id": f"image_{img.id}",
-            "filename": img.image_url.split("/")[-1],
+            "filename": img.image_url.split("/")[-1] if img.image_url else None,
             "image_url": img.image_url,
             "thumbnail_url": img.thumbnail_url,
             "size_bytes": img.size_bytes,
             "size_label": img.size_label,
-            "created_at": img.created_at.isoformat(),
-            "gallery_id": f"gallery_{(await img.galleries.all().first()).id}" 
-                if await img.galleries.all().first() else None,
+            "created_at": img.created_at.isoformat() if img.created_at else None,
+            "gallery_id": f"gallery_{g.id}" if g else None,
             "status": "trash",
             "source": "upload",
             "deleted_at": img.deleted_at.isoformat() if img.deleted_at else None

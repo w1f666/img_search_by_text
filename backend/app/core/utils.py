@@ -20,7 +20,6 @@ def split_phash(phash: str) -> List[str]:
     return [phash[i:i+4] for i in range(0, 16, 4)]
 
 async def phash_check(phash:str) -> List[int] :
-async def phash_check(phash:str) -> List[int] :
     """
     使用感知哈希检查图片是否重复。
     
@@ -39,13 +38,6 @@ async def phash_check(phash:str) -> List[int] :
         logger.info(f"Exact pHash match found: {exact_matches}")
     
     found_ids: Set[int] = set()
-    
-    exact_matches = await Image.filter(p_hash=phash).values_list("id", flat=True)
-    if exact_matches:
-        for img_id in exact_matches:
-            #这个报错别理
-            found_ids.add(img_id)
-        logger.info(f"Exact pHash match found: {exact_matches}")
         
     HANMING_DISTANCE_THRESHOLD = 3  # 定义感知哈希的汉明距离阈值
     try:
@@ -74,21 +66,13 @@ async def phash_check(phash:str) -> List[int] :
                 candidate_hash_obj = imagehash.hex_to_hash(candidate_phash)
                 distance = target_obj - candidate_hash_obj
                 
-                distance = target_obj - candidate_hash_obj
-                
                 if target_obj - candidate_hash_obj <= HANMING_DISTANCE_THRESHOLD:
-                    logger.info(f"Similarity detected (dist={distance}): ID {img_id}")
-                    found_ids.add(img_id)
-                    
                     logger.info(f"Similarity detected (dist={distance}): ID {img_id}")
                     found_ids.add(img_id)
                     
     except Exception as e:
         logger.error(f"pHash check error: {e}")
         
-    return list(found_ids) 
-
-async def vector_check(vector: List[float], threshold: float , top_k) -> List[int]:
     return list(found_ids) 
 
 async def vector_check(vector: List[float], threshold: float , top_k) -> List[int]:
@@ -126,43 +110,12 @@ async def vector_check(vector: List[float], threshold: float , top_k) -> List[in
         logger.error(f"Vector check error: {e}")
     
     return list(found_ids)
-    
-    :param top_k: 检索的最相似向量数量，默认值为5
-    :return: 返回相似度超过阈值的图片 ID 列表,如果没有检测到相似图片则返回空列表
-    """
-    found_ids: Set[int] = set()
-    
-    try:
-        result = collection.query(
-            query_embeddings=[vector],
-            n_results=top_k,
-        )
-        
-        if not result['ids'][0] or not result['distances']:  # 检查是否有结果
-            logger.warning("No similar images found in vector database.")
-            return []  # 如果没有结果，返回空列表
-        
-        ids_str = result['ids'][0]
-        scores = result['distances'][0]
-        
-        for img_id, score in zip(ids_str, scores):
-            if score <= threshold:
-                logger.info(f"Vector similarity detected: ID {img_id} score {score}")
-                try:
-                    found_ids.add(int(img_id))
-                except ValueError:
-                    logger.error(f"Invalid image ID format: {img_id}")
-    except Exception as e:
-        logger.error(f"Vector check error: {e}")
-    
-    return list(found_ids)
+
     
 async def duplicate_check(
     img_hash: str,
     phash: str, 
     vector: List[float],
-    strict: bool = True
-) -> List[int]:
     strict: bool = True
 ) -> List[int]:
     """

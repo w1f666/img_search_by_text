@@ -1,6 +1,0 @@
-2026-03-26 12:37:41.572 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=2, Name=test
-2026-03-26 19:55:10.752 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=3, Name=TEST2
-2026-03-26 20:13:26.694 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=4, Name=travel
-2026-03-26 22:28:01.256 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=2, Name=test1
-2026-03-26 22:28:09.743 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=3, Name=test2
-2026-03-26 22:28:16.878 | INFO     | app.core.db_handler.gallery_handler:create_gallery:77 - Gallery created successfully: ID=4, Name=test3

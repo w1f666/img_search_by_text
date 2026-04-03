@@ -20,18 +20,39 @@ def format_size(size_bytes: int) -> str:
         return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
     
 # 定义产生缩略图的函数
-def generate_thumbnail(image_path: str) -> str:
+def generate_thumbnail(image_path: str, file_hash: str) -> str:
     """
-    生成缩略图，返回缩略图路径
+    生成缩略图，保存到前端 public/.thumbnails 目录下，返回缩略图相对路径
+    使用原图的 hash 值作为文件名
     """
-    img = PILImage.open(image_path)
+    img = PILImage.open(image_path).copy()
     # 缩略图尺寸
     img.thumbnail((300, 300))
-    # 新路径
-    base, ext = os.path.splitext(image_path)
-    thumb_path = f"{base}_thumb{ext}"
+    
+    # 动态获取项目根目录
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+    
+    # 定义前端缩略图保存文件夹
+    thumb_dir = os.path.join(root_dir, "frontend", "public", ".thumbnails")
+    
+    # 如果文件夹不存在，则创建
+    if not os.path.exists(thumb_dir):
+        os.makedirs(thumb_dir, exist_ok=True)
+    
+    # 使用文件哈希值直接命名缩略图
+    _, ext = os.path.splitext(image_path)
+    # 如果原图可能带有 Alpha 通道 (RGBA) 并且扩展名是 jpg，需要转换为 RGB
+    if img.mode in ("RGBA", "P") and ext.lower() in (".jpg", ".jpeg"):
+        img = img.convert("RGB")
+        
+    thumb_filename = f"{file_hash}_thumb{ext}"
+    thumb_path = os.path.join(thumb_dir, thumb_filename)
+    
     img.save(thumb_path)
-    return thumb_path
+    
+    # 返回前端可以通过静态服务访问的相对路径
+    return f"/.thumbnails/{thumb_filename}"
     
 # 【new2.4-3】添加图片到相册/未分类
 async def add_img_to_database(
@@ -49,10 +70,6 @@ async def add_img_to_database(
     """
     logger.info(f"current process image: {img_path} - Adding image to database...")
     duplicates_img_ids = await duplicate_check(
-    :return: 新添加的图片记录，或检测到的重复图片 ID 列表
-    """
-    logger.info(f"current process image: {img_path} - Adding image to database...")
-    duplicates_img_ids = await duplicate_check(
         img_hash=img_hash,
         phash=phash,
         vector=vector,
@@ -61,17 +78,10 @@ async def add_img_to_database(
     
     if duplicates_img_ids:
         return duplicates_img_ids
-    )
     
-    if duplicates_img_ids:
-        return duplicates_img_ids
-    
-    four_parts = split_phash(phash)
     four_parts = split_phash(phash)
     #存入SQLite数据库,切分用于计算汉明距离
     new_img_record = await Image.create(
-        file_path=img_path,
-        thumbnail_path=thumbnail_path,
         file_hash=img_hash,
         p_hash=phash,
         upload_time=datetime.now(),
@@ -82,7 +92,7 @@ async def add_img_to_database(
         # ===== 新增 =====
         filename=os.path.basename(img_path),
         image_url=img_path,
-        thumbnail_url = generate_thumbnail(img_path),
+        thumbnail_url = generate_thumbnail(img_path, img_hash),
         size_bytes=os.path.getsize(img_path),  # 单位：字节
         size_label=format_size(os.path.getsize(img_path)),
         created_at=datetime.now(),
@@ -127,13 +137,12 @@ async def search_similar_images(
         image= await Image.get_or_none(id=img_id)
         
         if image:
-            filename = image.file_path.split("/")[-1].split("\\")[-1] if image.file_path else "unknown"
            
             similar_images.append({
                 "id": image.id,
-                "filename": filename,
-                "image_url": image.file_path,  
-                "thumbnail_url": image.thumbnail_path if image.thumbnail_path else image.file_path,
+                "filename": image.filename,
+                "image_url": image.image_url,
+                "thumbnail_url": image.thumbnail_url,
                 "distance": dist,
                 "gallery_id": getattr(image, "gallery_id", "unknown")
             })
