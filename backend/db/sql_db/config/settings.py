@@ -1,6 +1,6 @@
 import os
 
-DB_FOLDER = "backend/db/sql_db/storage" 
+DB_FOLDER = "backend/db/sql_db/storage"  
 if not os.path.exists(DB_FOLDER):
     os.makedirs(DB_FOLDER)
     
@@ -23,9 +23,11 @@ TORTOISE_ORM = {
                 "db.sql_db.models.image",
                 "db.sql_db.models.gallery",
                 "db.sql_db.models.ImageGalleryTrash",
+                "db.sql_db.models.history",
             ],
             "default_connection": "default",
         }
+
 
     },
 }

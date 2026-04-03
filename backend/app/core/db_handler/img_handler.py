@@ -49,6 +49,10 @@ async def add_img_to_database(
     """
     logger.info(f"current process image: {img_path} - Adding image to database...")
     duplicates_img_ids = await duplicate_check(
+    :return: 新添加的图片记录，或检测到的重复图片 ID 列表
+    """
+    logger.info(f"current process image: {img_path} - Adding image to database...")
+    duplicates_img_ids = await duplicate_check(
         img_hash=img_hash,
         phash=phash,
         vector=vector,
@@ -57,11 +61,17 @@ async def add_img_to_database(
     
     if duplicates_img_ids:
         return duplicates_img_ids
+    )
     
+    if duplicates_img_ids:
+        return duplicates_img_ids
+    
+    four_parts = split_phash(phash)
     four_parts = split_phash(phash)
     #存入SQLite数据库,切分用于计算汉明距离
     new_img_record = await Image.create(
         file_path=img_path,
+        thumbnail_path=thumbnail_path,
         file_hash=img_hash,
         p_hash=phash,
         upload_time=datetime.now(),
@@ -114,13 +124,20 @@ async def search_similar_images(
         return similar_images  # 如果没有结果，返回空列表
     
     for dist, img_id in zip(results['distances'][0], results['ids'][0]):  
-        image_url= await Image.get_or_none(id=img_id)
-        similar_images.append({
-            "image_id": img_id,
-            "distance": dist,
-            "image_url": image_url
-        })
-
+        image= await Image.get_or_none(id=img_id)
+        
+        if image:
+            filename = image.file_path.split("/")[-1].split("\\")[-1] if image.file_path else "unknown"
+           
+            similar_images.append({
+                "id": image.id,
+                "filename": filename,
+                "image_url": image.file_path,  
+                "thumbnail_url": image.thumbnail_path if image.thumbnail_path else image.file_path,
+                "distance": dist,
+                "gallery_id": getattr(image, "gallery_id", "unknown")
+            })
+            
     return similar_images
 
 

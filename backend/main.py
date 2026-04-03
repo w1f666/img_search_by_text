@@ -7,6 +7,7 @@ from db.sql_db.config.settings import TORTOISE_ORM
 from app.api.endpoint.img_manager import img_manage_router 
 from app.api.endpoint.img_search import img_search_router
 from app.api.endpoint.gallery_manager import gallery_router
+from app.api.endpoint.history_manager import history_router
 
 app = FastAPI(title="Image Search Backend")
 
@@ -19,9 +20,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(img_manage_router,prefix="", tags=["Image Management"])
+app.include_router(img_manage_router,prefix="/images", tags=["Image Management"])
 app.include_router(img_search_router,prefix="/search", tags=["Image Search"])
 app.include_router(gallery_router, prefix="/gallery", tags=["Gallery"])
+app.include_router(history_router, prefix="/history", tags=["Search History"])
 
 # 创建 FastAPI 应用实例
 
