@@ -13,6 +13,8 @@ import { CheckCircle2, FolderPen, FolderPlus, LoaderCircle, Sparkles, Trash2 } f
 import { useAutoClassifyMutation, useCreateGalleryMutation, useDeleteGalleryMutation, useGalleryListQuery, useGalleriesPageQuery, useUpdateGalleryMutation } from "@/lib/media-query";
 import { mediaApi } from "@/lib/media-api";
 import { GalleryCard } from "../customcomponents/ui/gallerycard";
+import { GallerySkeletonCard } from "../customcomponents/ui/galleryskeleton";
+import { ImageGrid } from "../customcomponents/ui/ImageGrid";
 import { ConfirmDialog } from "../customcomponents/ui/ConfirmDialog";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { FancySelect } from "../customcomponents/ui/FancySelect";
@@ -21,6 +23,8 @@ import { SearchToolbar } from "../customcomponents/ui/SearchToolbar";
 import type { AutoClassifyResponse, GalleryItem } from "@/types/media";
 
 const PAGE_SIZE = 12;
+
+const GALLERY_GRID = "grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4";
 
 export default function Gallery() {
   const [query, setQuery] = useState("");
@@ -165,12 +169,16 @@ export default function Gallery() {
       />
 
       {galleriesQuery.isLoading && items.length === 0 ? (
-        <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
-          正在加载相册数据...
-        </div>
+        <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
+          <ImageGrid className={GALLERY_GRID}>
+            {Array.from({ length: 8 }, (_, i) => (
+              <GallerySkeletonCard key={i} />
+            ))}
+          </ImageGrid>
+        </section>
       ) : items.length > 0 ? (
         <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <ImageGrid className={GALLERY_GRID}>
             {items.map((item: GalleryItem) => (
               <GalleryCard
                 key={item.id}
@@ -208,7 +216,7 @@ export default function Gallery() {
                 }
               />
             ))}
-          </div>
+          </ImageGrid>
           {pagination ? (
             <PaginationBar meta={pagination} disabled={galleriesQuery.isFetching} onPageChange={setPage} />
           ) : null}

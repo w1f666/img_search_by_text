@@ -21,6 +21,7 @@ import {
 import { mediaApi } from "@/lib/media-api";
 import type { AutoClassifyResponse, CreateImagePayload, ImageItem } from "@/types/media";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
+import { ImageSkeleton } from "../customcomponents/ui/imageskeleton";
 import { PaginationBar } from "../customcomponents/ui/PaginationBar";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { ImageCard } from "../customcomponents/ui/imagecard";
@@ -136,9 +137,13 @@ export default function AllImages() {
       </section>
 
       {imagesQuery.isLoading && images.length === 0 ? (
-        <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
-          正在加载图片数据...
-        </div>
+        <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
+          <ImageGrid>
+            {Array.from({ length: 12 }, (_, i) => (
+              <ImageSkeleton key={i} />
+            ))}
+          </ImageGrid>
+        </section>
       ) : images.length > 0 ? (
         <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
           <ImageGrid>

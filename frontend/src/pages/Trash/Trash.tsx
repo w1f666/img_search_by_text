@@ -4,6 +4,7 @@ import { ImageGrid } from "../customcomponents/ui/ImageGrid";
 import { Button } from "@/components/ui/button";
 import { LoaderCircle, RefreshCcw, Trash2 } from "lucide-react";
 import { useClearTrashMutation, useDeleteImageMutation, useRestoreImageMutation, useTrashImagesQuery } from "@/lib/media-query";
+import { ImageSkeleton } from "../customcomponents/ui/imageskeleton";
 import { ConfirmDialog } from "../customcomponents/ui/ConfirmDialog";
 import { ImageCard } from "../customcomponents/ui/imagecard";
 import type { ImageItem } from "@/types/media";
@@ -96,9 +97,11 @@ export default function Trash() {
             />
           ))}
           {isLoading && trashImages.length === 0 && (
-            <div className="col-span-full py-12 text-center text-muted-foreground">
-              正在加载回收站...
-            </div>
+            <>
+              {Array.from({ length: 8 }, (_, i) => (
+                <ImageSkeleton key={i} />
+              ))}
+            </>
           )}
           {trashImages.length === 0 && !isLoading && (
             <div className="col-span-full py-12 text-center text-muted-foreground">
