@@ -16,6 +16,7 @@ import { mediaApi } from "@/lib/media-api";
 import type { CreateImagePayload, GalleryItem, ImageItem } from "@/types/media";
 import { ImageCard } from "../customcomponents/ui/imagecard";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
+import { ImageSkeleton } from "../customcomponents/ui/imageskeleton";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { PaginationBar } from "../customcomponents/ui/PaginationBar";
 
@@ -105,7 +106,15 @@ export default function GalleryImage() {
         </div>
       </section>
 
-      {images.length > 0 ? (
+      {imagesQuery.isLoading && images.length === 0 ? (
+        <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
+          <ImageGrid className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            {Array.from({ length: 8 }, (_, i) => (
+              <ImageSkeleton key={i} />
+            ))}
+          </ImageGrid>
+        </section>
+      ) : images.length > 0 ? (
         <section data-page-panel className="rounded-[2rem] p-5 sm:p-6">
           <ImageGrid className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {images.map((image: ImageItem) => (
@@ -163,7 +172,7 @@ export default function GalleryImage() {
         </section>
       ) : (
         <div data-page-empty className="rounded-3xl border border-dashed px-6 py-16 text-center text-sm text-muted-foreground">
-          {imagesQuery.isLoading || imagesQuery.isFetching ? "正在加载图片..." : "这个相册里还没有图片，可以先添加一张。"}
+          这个相册里还没有图片，可以先添加一张。
         </div>
       )}
 
