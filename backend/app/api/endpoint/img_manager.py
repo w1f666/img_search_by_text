@@ -7,6 +7,11 @@ from app.core.db_handler.img_handler import add_img_to_database
 # from app.core.db_handler.img_handler import restore_image_by_id
 from app.core.db_handler.img_handler import list_images_all
 from app.core.db_handler.img_handler import list_images_paginated
+from app.logs.config import logger
+from app.core.clip_handler import CLIPHandler
+from db.sql_db.models.image import Image
+from db.vector_db.client import image_collection
+from db.vector_db.client import gallery_collection
 
 from db.sql_db.models.gallery import Gallery
 
@@ -165,9 +170,94 @@ async def list_images_api(
         }
     }
 
+class AutoClassifyImageRequest(BaseModel):
+    scope: str # "all-unclassified" | "selected"
+    image_ids: List[str] | None = None
 
+@img_manage_router.post("/api/images/auto-classify")
+async def auto_classify_image(request: AutoClassifyImageRequest):
 
+    if request.scope == "all-unclassified":
+        images = await Image.filter(status="active", gallery_id__isnull=True)
+    elif request.scope == "selected" and request.image_ids:
+        raw_ids = [int(i.split("_")[-1]) for i in request.image_ids] 
+        images = await Image.filter(id__in=raw_ids, status="active")
+    else:
+        images = []
 
+    if not images:
+        logger.info("No images to classify based on the provided scope and IDs.")
+        return {"classified": [], "skipped": [], "total_processed": 0}
+
+    classified_results = []
+    skipped_results = []
+    updated_gallery_ids = set()
+    
+    for img in images:
+        img_chroma = image_collection.get(ids=[str(img.id)],include=["embeddings"])
+        
+        if not img_chroma or len(img_chroma.get('embeddings', [])) == 0:
+            logger.warning(f"No vector found for image ID {img.id}, skipping classification.")
+            skipped_results.append({
+                f"image_{img.id:03d}"
+            })
+            continue
+        
+        img_vector = img_chroma['embeddings'][0]
+        search_res = gallery_collection.query(
+            query_embeddings=[img_vector],
+            n_results=1,
+            include=["distances","metadatas"]
+        )
+        
+        if len(search_res.get('ids', [])) == 0 or len(search_res['ids'][0]) == 0:
+            logger.warning(f"No gallery found for image ID {img.id}, skipping classification.")
+            skipped_results.append({
+                f"image_{img.id:03d}"
+            })
+            continue
+        
+        raw_gallery_id = search_res['ids'][0][0]
+        distance = search_res['distances'][0][0]
+        best_gallery_name = search_res['metadatas'][0][0]["name"]
+        
+        confidence = round(1 - distance, 2)
+        
+        if confidence >= 0.2:
+            gallery_num_id = int(raw_gallery_id)
+            
+            img.gallery_id = gallery_num_id
+            await img.save()
+            
+            classified_results.append({
+                "image_id": f"image_{img.id:03d}",
+                "gallery_id": f"gallery_{gallery_num_id:03d}",
+                "gallery_name": best_gallery_name,
+                "confidence": confidence
+            })
+            updated_gallery_ids.add(gallery_num_id)
+        else:
+            logger.info(f"Image ID {img.id} classified with low confidence ({confidence}), skipping assignment.")
+            skipped_results.append(f"image_{img.id:03d}")
+            
+    for g_id in updated_gallery_ids:
+        g = await Gallery.get_or_none(id=g_id)
+        if g:
+            count = await Image.filter(gallery_id=g_id, status="active").count()
+            g.image_count = count
+            
+            # 未设置封面时给一张最新的
+            if not g.cover_image_url:
+                latest_img = await Image.filter(gallery_id=g_id, status="active").order_by("-created_at").first()
+                if latest_img:
+                    g.cover_image_url = latest_img.image_url
+            await g.save()
+
+    return {
+        "classified": classified_results,
+        "skipped": skipped_results,
+        "total_processed": len(images)
+    }
 # class AddImageRequest(BaseModel):
 #     file_path: List[str]
 

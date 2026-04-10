@@ -9,7 +9,12 @@ os.makedirs(DB_FOLDER, exist_ok=True)
 
 client = chromadb.PersistentClient(path=DB_FOLDER);
 
-collection = client.get_or_create_collection(
+image_collection = client.get_or_create_collection(
     name="image_vectors",
+    metadata={"hnsw:space": "cosine"},
+)
+
+gallery_collection = client.get_or_create_collection(
+    name="gallery_vectors",
     metadata={"hnsw:space": "cosine"},
 )
