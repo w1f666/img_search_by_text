@@ -99,7 +99,8 @@ class CLIPHandler:
                 
                 self.tokenizer = BertTokenizer.from_pretrained(
                     "OFA-Sys/chinese-clip-vit-base-patch16",
-                    cache_dir=os.path.join(self.model_path, "tokenizer")
+                    cache_dir=os.path.join(self.model_path, "tokenizer"),
+                    local_files_only=True
                 )
                 logger.info("Tokenizer loaded successfully.")
                 

@@ -1,0 +1,52 @@
+2026-04-09 22:02:04.723 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
+2026-04-09 22:02:08.659 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
+2026-04-09 22:05:08.719 | ERROR    | app.core.clip_handler:_ensure_model_loaded:107 - Error loading CLIP models or tokenizer: [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。
+2026-04-09 22:05:08.759 | ERROR    | app.core.clip_handler:text_extract:170 - Something wrong in clip init: text session or tokenizer not loaded
+2026-04-09 22:06:35.956 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
+2026-04-09 22:06:37.658 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
+2026-04-09 22:06:37.685 | INFO     | app.core.clip_handler:_ensure_model_loaded:105 - Tokenizer loaded successfully.
+2026-04-09 22:20:21.448 | WARNING  | app.api.endpoint.img_manager:auto_classify_image:200 - No vector found for image ID 1, skipping classification.
+2026-04-09 22:32:51.696 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
+2026-04-09 22:32:53.919 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
+2026-04-09 22:32:53.937 | INFO     | app.core.clip_handler:_ensure_model_loaded:105 - Tokenizer loaded successfully.
+2026-04-09 22:32:54.145 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985804-0850.jpg - Adding image to database...
+2026-04-09 22:32:54.216 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=2, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985804-0850.jpg
+2026-04-09 22:34:39.561 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985813-0897.jpg - Adding image to database...
+2026-04-09 22:34:39.590 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=3, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985813-0897.jpg
+2026-04-09 22:34:52.961 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985835-0033.jpg - Adding image to database...
+2026-04-09 22:34:52.983 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=4, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985835-0033.jpg
+2026-04-09 22:34:59.843 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985840-0363.jpg - Adding image to database...
+2026-04-09 22:34:59.875 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=5, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985840-0363.jpg
+2026-04-09 22:35:06.148 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985858-0590.jpg - Adding image to database...
+2026-04-09 22:35:06.175 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=6, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985858-0590.jpg
+2026-04-09 22:35:14.352 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985865-0144.jpg - Adding image to database...
+2026-04-09 22:35:14.375 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=7, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985865-0144.jpg
+2026-04-09 22:35:27.929 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985862-0576.jpg - Adding image to database...
+2026-04-09 22:35:27.953 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=8, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985862-0576.jpg
+2026-04-09 22:35:38.545 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985928-0969.jpg - Adding image to database...
+2026-04-09 22:35:38.573 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=9, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985928-0969.jpg
+2026-04-09 22:35:46.004 | INFO     | app.api.endpoint.img_manager:auto_classify_image:240 - Image ID 1 classified with low confidence (0.15), skipping assignment.
+2026-04-09 22:40:13.336 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
+2026-04-09 22:40:14.943 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
+2026-04-09 22:40:14.964 | INFO     | app.core.clip_handler:_ensure_model_loaded:105 - Tokenizer loaded successfully.
+2026-04-09 22:40:35.071 | INFO     | app.api.endpoint.img_manager:auto_classify_image:240 - Image ID 1 classified with low confidence (0.15), skipping assignment.
+2026-04-09 22:42:36.989 | INFO     | app.api.endpoint.img_manager:auto_classify_image:240 - Image ID 1 classified with low confidence (0.15), skipping assignment.
+2026-04-09 22:44:33.750 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
+2026-04-09 22:44:35.604 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
+2026-04-09 22:44:35.628 | INFO     | app.core.clip_handler:_ensure_model_loaded:105 - Tokenizer loaded successfully.
+2026-04-09 22:44:35.857 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985928-0969.jpg - Adding image to database...
+2026-04-09 22:44:35.886 | WARNING  | app.core.utils:vector_check:96 - No similar images found in vector database.
+2026-04-09 22:44:35.949 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=1, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00985928-0969.jpg
+2026-04-09 22:44:42.975 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986005-0409.jpg - Adding image to database...
+2026-04-09 22:44:43.001 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=2, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986005-0409.jpg
+2026-04-09 22:44:49.962 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986073-0574.jpg - Adding image to database...
+2026-04-09 22:44:49.989 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=3, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986073-0574.jpg
+2026-04-09 22:44:57.154 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986114-0751.jpg - Adding image to database...
+2026-04-09 22:44:57.179 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=4, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986114-0751.jpg
+2026-04-09 22:45:09.361 | INFO     | app.core.db_handler.img_handler:add_img_to_database:71 - current process image: D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986211-0228.jpg - Adding image to database...
+2026-04-09 22:45:09.392 | INFO     | app.core.db_handler.img_handler:add_img_to_database:110 - Image added successfully: ID=5, Path=D:\code\ProjectDemo\imageserch\DEMO\CI_new\backend\resource\gallery\00986211-0228.jpg
+2026-04-09 22:45:28.131 | WARNING  | app.api.endpoint.img_manager:auto_classify_image:214 - No gallery found for image ID 1, skipping classification.
+2026-04-09 22:45:28.133 | WARNING  | app.api.endpoint.img_manager:auto_classify_image:214 - No gallery found for image ID 2, skipping classification.
+2026-04-09 22:45:28.135 | WARNING  | app.api.endpoint.img_manager:auto_classify_image:214 - No gallery found for image ID 3, skipping classification.
+2026-04-09 22:45:28.136 | WARNING  | app.api.endpoint.img_manager:auto_classify_image:214 - No gallery found for image ID 4, skipping classification.
+2026-04-09 22:45:28.139 | WARNING  | app.api.endpoint.img_manager:auto_classify_image:214 - No gallery found for image ID 5, skipping classification.

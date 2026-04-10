@@ -1,4 +1,4 @@
-from db.vector_db.client import collection
+from db.vector_db.client import image_collection
 from typing import List
 from db.sql_db.models.image import Image
 from datetime import datetime
@@ -102,7 +102,7 @@ async def add_img_to_database(
     )
     
     # 存入 ChromaDB 向量数据库
-    collection.add(
+    image_collection.add(
         ids=[str(new_img_record.id)],
         embeddings=[vector],
     )
@@ -121,7 +121,7 @@ async def search_similar_images(
     :param top_k: 返回的最大结果数
     :return: 包含相似图片信息的字典列表
     """
-    results = collection.query(
+    results = image_collection.query(
         query_embeddings=[vector],
         n_results=top_k,
         include=["distances"]

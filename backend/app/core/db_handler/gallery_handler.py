@@ -1,4 +1,4 @@
-from db.vector_db.client import collection
+from db.vector_db.client import image_collection
 from typing import List
 from db.sql_db.models.gallery import Gallery
 from datetime import datetime
@@ -6,6 +6,8 @@ from app.logs.config import logger
 from db.sql_db.models.image import Image
 from db.sql_db.models.ImageGalleryTrash import ImageGalleryTrash
 from tortoise.expressions import Q
+from app.core.clip_handler import CLIPHandler
+from db.vector_db.client import gallery_collection
 
 RECYCLE_GALLERY_ID = 1
 ROOT_ID = 0
@@ -52,6 +54,14 @@ async def create_gallery(name: str, description: str | None = None):
         created_at=datetime.now(),
         updated_at=datetime.now()
     )
+    clip = CLIPHandler()
+    text_vector = clip.text_extract(name)
+    if text_vector:
+        gallery_collection.add(
+            ids=[f"{gallery.id}"],  # 统一使用带有前缀的格式或直接存 string 类型的 id
+            embeddings=[text_vector],
+            metadatas=[{"name": name}]
+        )
     return gallery
 
 # 【new2.3-1】获取所有除回收站以外的正常相册
@@ -118,6 +128,15 @@ async def update_gallery(
         return None
 
     if name is not None:
+        clip = CLIPHandler()
+        text_vector = clip.text_extract(name)
+        if text_vector:
+            # 采用 upsert 进行更新
+            gallery_collection.upsert(
+                ids=[str(gallery.id)],
+                embeddings=[text_vector],
+                metadatas=[{"name": name}]
+            )
         gallery.name = name
     if description is not None:
         gallery.description = description
@@ -145,16 +164,20 @@ async def delete_gallery_single(gallery_id: int):
     if not gallery:
         return False, 0
 
-    # 找所有图片
-    images = await Image.filter(gallery_id=gallery_id)
+    # 1. 直接获取对应相册下的图片总数，不拉取图片详情，效率更高
+    count = await Image.filter(gallery_id=gallery_id).count()
 
-    count = await images.count()
+    # 2. 将该相册下的所有图片变更为未归类 (gallery_id=None)
+    await Image.filter(gallery_id=gallery_id).update(gallery_id=None)
 
-    # 变未分类
-    await images.update(gallery_id=None)
-
-    # 删除 gallery
+    # 3. 删除 gallery 本身
     await gallery.delete()
+    
+    # 4. 同步从 ChromaDB 向量库中删除该相册的特征向量（注意使用裸 ID 字符串）
+    try:
+        gallery_collection.delete(ids=[str(gallery_id)])
+    except Exception as e:
+        logger.error(f"Failed to delete gallery vector for gallery_id={gallery_id}: {e}")
 
     return True, count
 

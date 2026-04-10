@@ -1,8 +1,0 @@
-2026-03-26 19:21:13.366 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
-2026-03-26 19:21:16.955 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
-2026-03-26 19:24:17.001 | ERROR    | app.core.clip_handler:_ensure_model_loaded:107 - Error loading CLIP models or tokenizer: [WinError 10060] 由于连接方在一段时间后没有正确答复或连接的主机没有反应，连接尝试失败。
-2026-03-26 19:24:17.033 | ERROR    | app.core.clip_handler:text_extract:171 - Something wrong in clip init: text session or tokenizer not loaded
-2026-03-26 19:24:18.131 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
-2026-03-26 19:41:36.075 | INFO     | app.core.clip_handler:__init__:68 - CLIP (ONNX) instance created. Providers: ['CUDAExecutionProvider', 'CPUExecutionProvider']
-2026-03-26 19:41:37.560 | INFO     | app.core.clip_handler:_ensure_model_loaded:98 - CLIP ONNX models loaded successfully.
-2026-03-26 19:41:38.860 | INFO     | app.core.clip_handler:_ensure_model_loaded:104 - Tokenizer loaded successfully.

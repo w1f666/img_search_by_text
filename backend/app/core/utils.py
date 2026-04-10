@@ -1,8 +1,8 @@
 from typing import List,Set
 from typing import List,Set
 from db.sql_db.models.image import Image
-from db.vector_db.client import collection
-from db.vector_db.client import collection
+from db.vector_db.client import image_collection
+from db.vector_db.client import image_collection
 from app.logs.config import logger
 from tortoise.expressions import Q
 import imagehash
@@ -87,7 +87,7 @@ async def vector_check(vector: List[float], threshold: float , top_k) -> List[in
     found_ids: Set[int] = set()
     
     try:
-        result = collection.query(
+        result = image_collection.query(
             query_embeddings=[vector],
             n_results=top_k,
         )
