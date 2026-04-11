@@ -173,6 +173,30 @@ export const useCreateImageMutation = () => {
   });
 };
 
+export const useUploadImageMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ file, galleryId }: { file: File; galleryId?: string | null }) =>
+      mediaApi.uploadImage(file, galleryId),
+    onSuccess: async () => {
+      await invalidateImageQueries(queryClient);
+    },
+  });
+};
+
+export const useBatchUploadImagesMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ files, galleryId }: { files: File[]; galleryId?: string | null }) =>
+      mediaApi.batchUploadImages(files, galleryId),
+    onSuccess: async () => {
+      await invalidateImageQueries(queryClient);
+    },
+  });
+};
+
 export const useUpdateImageMutation = () => {
   const queryClient = useQueryClient();
 
