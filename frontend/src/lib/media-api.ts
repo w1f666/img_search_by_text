@@ -6,7 +6,6 @@ import type {
   BackendHistoryRecord,
   BackendImage,
   CreateGalleryPayload,
-  CreateImagePayload,
   GalleryItem,
   HistoryRecord,
   ImageDetailContext,
@@ -17,7 +16,6 @@ import type {
   PaginatedResult,
   PaginationMeta,
   SearchBestMatchPayload,
-  SearchBestMatchResponse,
   SearchTopKResponse,
   UpdateGalleryPayload,
   UpdateImagePayload,
@@ -104,27 +102,6 @@ const buildRange = (page: number, pageSize = DEFAULT_PAGE_SIZE) => ({
 
 export const mediaApi = {
   buildRange,
-
-  async searchBestMatch(payload: SearchBestMatchPayload): Promise<SearchBestMatchResponse> {
-    const formData = new FormData();
-    formData.append("type", payload.type);
-    if (payload.textQuery?.trim()) formData.append("text_query", payload.textQuery.trim());
-    if (payload.referenceImageFile) formData.append("image_file", payload.referenceImageFile);
-    if (payload.searchSessionId) formData.append("search_session_id", payload.searchSessionId);
-    formData.append("top_k", String(payload.topK ?? 24));
-    formData.append("search_strategy", payload.searchStrategy ?? "balanced");
-
-    const response = await request<{ best_match: BackendImage | null; search_session_id: string | null }>({
-      url: "/api/search/best-match",
-      method: "POST",
-      data: formData,
-    });
-
-    return {
-      bestMatch: response.best_match ? toImageItem(response.best_match) : null,
-      searchSessionId: response.search_session_id,
-    };
-  },
 
   async searchTopK(payload: SearchBestMatchPayload): Promise<SearchTopKResponse> {
     const formData = new FormData();
@@ -302,38 +279,6 @@ export const mediaApi = {
     };
   },
 
-  async createImage(payload: CreateImagePayload) {
-    const response = await request<BackendImage>({
-      url: "/api/images",
-      method: "POST",
-      data: {
-        filename: payload.filename.trim(),
-        size_label: payload.sizeLabel.trim(),
-        url: payload.url.trim(),
-        gallery_id: payload.galleryId ?? null,
-      },
-    });
-
-    return toImageItem(response);
-  },
-
-  async uploadImage(file: File, galleryId?: string | null) {
-    const formData = new FormData();
-    formData.append("file", file);
-    if (galleryId) {
-      formData.append("gallery_id", galleryId);
-    }
-
-    const response = await request<BackendImage>({
-      url: "/api/images/upload",
-      method: "POST",
-      data: formData,
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    return toImageItem(response);
-  },
-
   async batchUploadImages(files: File[], galleryId?: string | null) {
     const formData = new FormData();
     for (const file of files) {
@@ -347,7 +292,7 @@ export const mediaApi = {
       url: "/api/images/batch-upload",
       method: "POST",
       data: formData,
-      headers: { "Content-Type": "multipart/form-data" },
+
     });
 
     return {
@@ -372,14 +317,6 @@ export const mediaApi = {
     await request<{ id: string; status: "trash"; deleted_at: string }>({
       url: `/api/images/${id}/trash`,
       method: "POST",
-    });
-  },
-
-  async moveImagesToTrash(ids: string[]) {
-    await request<{ image_ids: string[]; deleted_count: number }>({
-      url: "/api/images/batch-trash",
-      method: "POST",
-      data: { image_ids: ids },
     });
   },
 

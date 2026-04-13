@@ -1,15 +1,17 @@
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUp, ChevronLeft, ChevronRight, ImagePlus, Loader2, Paperclip, Search, Sparkles, X } from "lucide-react";
+import { ArrowUp, ChevronLeft, ChevronRight, ImagePlus, Loader2, Paperclip, Search, SearchX, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { LazyImage } from "@/pages/customcomponents/ui/LazyImage";
 import { useHistoryListQuery, useSearchSessionResultsQuery, useSearchTopKMutation } from "@/lib/media-query";
 import type { HistoryRecord, ImageItem, SearchQuery, SearchStrategy } from "@/types/media";
 import { FancySelect } from "@/pages/customcomponents/ui/FancySelect";
 import { ImageGrid } from "@/pages/customcomponents/ui/ImageGrid";
 import { ImageCard } from "@/pages/customcomponents/ui/imagecard";
+import { ImageSkeleton } from "@/pages/customcomponents/ui/imageskeleton";
 
 const GREETINGS = [
     "想找哪张图？给我一句描述，或者直接丢一张参考图。",
@@ -55,6 +57,7 @@ export default function Searchbar() {
     const showGreeting = !hasSession && !isSearching;
     const showLoading = isSearching || (hasSession && isLoadingSession && !hasResults);
     const showResults = hasSession && hasResults && !isSearching;
+    const showEmpty = hasSession && !isLoadingSession && !hasResults && !isSearching;
     const selectedImage = results[previewIndex] ?? null;
 
     useEffect(() => {
@@ -280,10 +283,37 @@ export default function Searchbar() {
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}
                                         exit={{ opacity: 0 }}
+                                        className="space-y-6"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <Loader2 className="size-5 animate-spin text-slate-400 dark:text-zinc-500" />
+                                            <p className="text-sm text-slate-500 dark:text-zinc-400">正在搜索...</p>
+                                        </div>
+                                        {/* 骨架屏占位 */}
+                                        <div className="rounded-3xl border border-border/60 bg-background/80 p-3 sm:p-4">
+                                            <Skeleton className="aspect-video w-full rounded-2xl" />
+                                        </div>
+                                        <ImageGrid className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                                            {Array.from({ length: 10 }, (_, i) => (
+                                                <ImageSkeleton key={i} />
+                                            ))}
+                                        </ImageGrid>
+                                    </motion.div>
+                                )}
+
+                                {/* 无结果 */}
+                                {showEmpty && (
+                                    <motion.div
+                                        key="empty"
+                                        initial={{ opacity: 0, y: 12 }}
+                                        animate={{ opacity: 1, y: 0 }}
                                         className="flex min-h-[40vh] flex-col items-center justify-center gap-3"
                                     >
-                                        <Loader2 className="size-8 animate-spin text-slate-400 dark:text-zinc-500" />
-                                        <p className="text-sm text-slate-500 dark:text-zinc-400">正在搜索...</p>
+                                        <SearchX className="size-12 text-slate-300 dark:text-zinc-600" />
+                                        <p className="text-base font-medium text-slate-600 dark:text-zinc-300">未找到匹配的图片</p>
+                                        <p className="max-w-sm text-center text-sm text-slate-400 dark:text-zinc-500">
+                                            当前搜索条件没有在图库中找到足够相似的图片，试试换个描述或上传一张更接近的参考图。
+                                        </p>
                                     </motion.div>
                                 )}
 

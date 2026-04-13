@@ -80,10 +80,8 @@ export default function AllImages() {
 
   const removeFile = (index: number) => {
     setSelectedFiles((prev) => {
-      const copy = [...prev];
-      URL.revokeObjectURL(copy[index].previewUrl);
-      copy.splice(index, 1);
-      return copy;
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
     });
   };
 

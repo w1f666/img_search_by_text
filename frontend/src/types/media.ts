@@ -90,13 +90,6 @@ export interface UpdateGalleryPayload {
   description?: string;
 }
 
-export interface CreateImagePayload {
-  filename: string;
-  sizeLabel: string;
-  url: string;
-  galleryId?: string | null;
-}
-
 export interface UpdateImagePayload {
   galleryId?: string | null;
 }
@@ -124,11 +117,6 @@ export interface SearchBestMatchPayload {
   searchSessionId?: string;
   topK?: number;
   searchStrategy?: SearchStrategy;
-}
-
-export interface SearchBestMatchResponse {
-  bestMatch: ImageItem | null;
-  searchSessionId: string | null;
 }
 
 export interface SearchTopKResponse {

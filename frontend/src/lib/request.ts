@@ -1,7 +1,7 @@
 import axios, { type AxiosRequestConfig } from "axios";
 
 export const httpClient = axios.create({
-  baseURL: import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8080",
+  baseURL: import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000",
   timeout: 60000,
   withCredentials: false,
 });
