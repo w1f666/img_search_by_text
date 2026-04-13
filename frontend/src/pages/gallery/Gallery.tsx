@@ -1,4 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -35,7 +36,8 @@ export default function Gallery() {
   const [busyGalleryIds, setBusyGalleryIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [form, setForm] = useState({ name: "", description: "" });
-  const deferredQuery = useDeferredValue(query);
+  const debouncedQuery = useDebounce(query, 300);
+  const deferredQuery = useDeferredValue(debouncedQuery);
   // 列表分页、搜索和排序全部走 query key，参数变化就自动请求新数据。
   const { data: galleryList = [] } = useGalleryListQuery();
   const galleriesQuery = useGalleriesPageQuery({

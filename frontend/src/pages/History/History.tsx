@@ -1,4 +1,5 @@
 import { useDeferredValue, useMemo, useState } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,7 +52,8 @@ export default function History() {
 	const navigate = useNavigate();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [query, setQuery] = useState(searchParams.get("query") ?? "");
-	const deferredQuery = useDeferredValue(query);
+	const debouncedQuery = useDebounce(query, 300);
+	const deferredQuery = useDeferredValue(debouncedQuery);
 	// 历史页的筛选直接作为 query 参数参与请求，页面本身不再做二次全量过滤。
 	const { data: historyRecords = [], isLoading } = useHistoryListQuery(deferredQuery || undefined);
 
@@ -78,14 +80,14 @@ export default function History() {
 		setSearchParams(nextParams, { replace: true });
 	};
 
-	const handleSelect = (recordId: string) => {
+	const handleSelect = (sessionId: string) => {
 		const nextParams = new URLSearchParams(searchParams);
-		nextParams.set("selected", recordId);
+		nextParams.set("selected", sessionId);
 		setSearchParams(nextParams, { replace: true });
 	};
 
-	const openSearchSession = (recordId: string) => {
-		navigate(`/search/${recordId}`);
+	const openSearchSession = (sessionId: string) => {
+		navigate(`/search/${sessionId}`);
 	};
 
 	return (

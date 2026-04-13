@@ -1,6 +1,6 @@
 import { Component } from "react";
 import type { ErrorInfo, ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -52,8 +52,11 @@ class ErrorBoundaryInner extends Component<Props & { onReset: () => void }, Stat
 
 export function ErrorBoundary({ children }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
+  // 用 pathname 作为 key，路由切换时强制重新挂载 ErrorBoundaryInner，
+  // 防止上一个路由的错误状态泄漏到新路由。
   return (
-    <ErrorBoundaryInner onReset={() => navigate("/", { replace: true })}>
+    <ErrorBoundaryInner key={location.pathname} onReset={() => navigate("/", { replace: true })}>
       {children}
     </ErrorBoundaryInner>
   );

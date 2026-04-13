@@ -8,7 +8,6 @@ import { mediaApi } from "./media-api";
 import type {
   AutoClassifyPayload,
   CreateGalleryPayload,
-  CreateImagePayload,
   ListGalleriesPageParams,
   ListImagesPageParams,
   SearchBestMatchPayload,
@@ -162,11 +161,12 @@ export const useDeleteGalleryMutation = () => {
   });
 };
 
-export const useCreateImageMutation = () => {
+export const useBatchUploadImagesMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateImagePayload) => mediaApi.createImage(payload),
+    mutationFn: ({ files, galleryId }: { files: File[]; galleryId?: string | null }) =>
+      mediaApi.batchUploadImages(files, galleryId),
     onSuccess: async () => {
       await invalidateImageQueries(queryClient);
     },

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,22 +9,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { ImagePlus, LoaderCircle, Sparkles, Trash2 } from "lucide-react";
+import { ImagePlus, LoaderCircle, Sparkles, Trash2, Upload, X } from "lucide-react";
 import {
   useAutoClassifyMutation,
-  useCreateImageMutation,
+  useBatchUploadImagesMutation,
   useGalleryListQuery,
   useImagesPageQuery,
   useMoveImageToTrashMutation,
 } from "@/lib/media-query";
 import { mediaApi } from "@/lib/media-api";
-import type { AutoClassifyResponse, CreateImagePayload, ImageItem } from "@/types/media";
+import type { AutoClassifyResponse, ImageItem } from "@/types/media";
 import { ImageGrid } from "../customcomponents/ui/ImageGrid";
 import { ImageSkeleton } from "../customcomponents/ui/imageskeleton";
 import { PaginationBar } from "../customcomponents/ui/PaginationBar";
 import { PageHeader } from "../customcomponents/ui/PageHeader";
 import { ImageCard } from "../customcomponents/ui/imagecard";
+import { FancySelect } from "../customcomponents/ui/FancySelect";
 
 const PAGE_SIZE = 20;
 
@@ -33,12 +33,9 @@ export default function AllImages() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [busyImageIds, setBusyImageIds] = useState<string[]>([]);
-  const [form, setForm] = useState<CreateImagePayload>({
-    filename: "",
-    sizeLabel: "",
-    url: "/gallery/landscapes/IMG_8212.JPG",
-    galleryId: null,
-  });
+  const [selectedFiles, setSelectedFiles] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [selectedGalleryId, setSelectedGalleryId] = useState<string>("none");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // 页面状态只保留筛选和弹窗；真正的数据列表交给 React Query 缓存。
   const { data: galleryList = [] } = useGalleryListQuery();
   const imagesQuery = useImagesPageQuery({
@@ -52,7 +49,7 @@ export default function AllImages() {
     status: "active",
     galleryId: null,
   });
-  const addImage = useCreateImageMutation();
+  const batchUpload = useBatchUploadImagesMutation();
   const moveImageToTrash = useMoveImageToTrashMutation();
   const autoClassify = useAutoClassifyMutation();
   const [classifyResultOpen, setClassifyResultOpen] = useState(false);
@@ -66,28 +63,42 @@ export default function AllImages() {
     return galleryList.find((gallery) => gallery.id === image.galleryId)?.name ?? "未归类";
   };
 
-  const resetForm = () => {
-    setForm({
-      filename: "",
-      sizeLabel: "",
-      url: "/gallery/landscapes/IMG_8212.JPG",
-      galleryId: null,
+  const resetDialog = () => {
+    for (const f of selectedFiles) URL.revokeObjectURL(f.previewUrl);
+    setSelectedFiles([]);
+    setSelectedGalleryId("none");
+  };
+
+  const handleFileChange = (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const newEntries = Array.from(fileList).map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setSelectedFiles((prev) => [...prev, ...newEntries]);
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => {
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
     });
   };
 
-  const handleCreateImage = async () => {
-    if (!form.filename.trim() || !form.sizeLabel.trim()) {
-      return;
-    }
+  const formatSize = (bytes: number) => {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  };
 
-    await addImage.mutateAsync({
-      ...form,
-      filename: form.filename.trim(),
-      sizeLabel: form.sizeLabel.trim(),
-      url: form.url.trim(),
+  const handleUpload = async () => {
+    if (selectedFiles.length === 0) return;
+    const galleryId = selectedGalleryId === "none" ? null : selectedGalleryId;
+    await batchUpload.mutateAsync({
+      files: selectedFiles.map((f) => f.file),
+      galleryId,
     });
     setDialogOpen(false);
-    resetForm();
+    resetDialog();
     setPage(1);
   };
 
@@ -187,75 +198,86 @@ export default function AllImages() {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetDialog(); }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>添加图片</DialogTitle>
-            <DialogDescription>
-              表单字段已对齐后端图片创建接口，提交后会只失效相关 query，不再整库刷新。
-            </DialogDescription>
+            <DialogTitle>上传图片</DialogTitle>
+            <DialogDescription>支持一次性选择多张图片，选择图集后统一上传。</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
-            <div className="grid gap-2">
-              <span className="text-sm font-medium">文件名</span>
-              <Input
-                value={form.filename}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, filename: event.target.value }))
-                }
-                placeholder="例如：trip-cover.jpg"
-              />
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="grid gap-2">
-                <span className="text-sm font-medium">文件大小</span>
-                <Input
-                  value={form.sizeLabel}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, sizeLabel: event.target.value }))
-                  }
-                  placeholder="例如：3.6 MB"
-                />
-              </div>
-              <div className="grid gap-2">
-                <span className="text-sm font-medium">所属图集</span>
-                <select
-                  value={form.galleryId ?? "none"}
-                  onChange={(event) =>
-                    setForm((current) => ({
-                      ...current,
-                      galleryId: event.target.value === "none" ? null : event.target.value,
-                    }))
-                  }
-                  className="h-9 rounded-md border border-input bg-background px-3 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  <option value="none">暂不归类</option>
-                  {galleryList.map((gallery) => (
-                    <option key={gallery.id} value={gallery.id}>
-                      {gallery.name}
-                    </option>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => { handleFileChange(e.target.files); e.target.value = ""; }}
+            />
+            {selectedFiles.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid max-h-60 grid-cols-3 gap-2 overflow-y-auto rounded-xl border border-border/60 p-2">
+                  {selectedFiles.map((entry, index) => (
+                    <div key={entry.previewUrl} className="group relative overflow-hidden rounded-lg">
+                      <img src={entry.previewUrl} alt={entry.file.name} className="aspect-square w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white opacity-0 transition group-hover:opacity-100"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-4">
+                        <p className="truncate text-[10px] text-white">{entry.file.name}</p>
+                        <p className="text-[10px] text-white/70">{formatSize(entry.file.size)}</p>
+                      </div>
+                    </div>
                   ))}
-                </select>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full rounded-xl"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImagePlus className="size-4" />
+                  继续添加
+                </Button>
               </div>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border/60 px-6 py-10 text-sm text-muted-foreground transition hover:border-primary/40 hover:bg-secondary/50"
+              >
+                <Upload className="size-8" />
+                <span>点击选择图片</span>
+                <span className="text-xs">支持多选</span>
+              </button>
+            )}
             <div className="grid gap-2">
-              <span className="text-sm font-medium">图片地址</span>
-              <Input
-                value={form.url}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, url: event.target.value }))
-                }
-                placeholder="/gallery/landscapes/IMG_8212.JPG"
+              <span className="text-sm font-medium">所属图集</span>
+              <FancySelect
+                value={selectedGalleryId}
+                options={[
+                  { value: "none", label: "暂不归类" },
+                  ...galleryList.map((g) => ({
+                    value: g.id,
+                    label: g.name,
+                    hint: `${g.imageCount} 张`,
+                  })),
+                ]}
+                onValueChange={setSelectedGalleryId}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" onClick={() => { setDialogOpen(false); resetDialog(); }}>
               取消
             </Button>
-            <Button disabled={addImage.isPending} onClick={() => void handleCreateImage()}>
-              {addImage.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
-              保存
+            <Button disabled={selectedFiles.length === 0 || batchUpload.isPending} onClick={() => void handleUpload()}>
+              {batchUpload.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
+              上传{selectedFiles.length > 0 ? ` (${selectedFiles.length})` : ""}
             </Button>
           </DialogFooter>
         </DialogContent>
