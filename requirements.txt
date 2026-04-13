@@ -3,7 +3,9 @@ chromadb
 cn-clip
 fastapi
 imagehash
+modelscope
 pillow
+python-multipart
 uvicorn
 torch
 torchvision

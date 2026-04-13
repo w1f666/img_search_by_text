@@ -1,29 +1,26 @@
-## 忽略本地数据库文件（SQLite 等）
-/backend/db/sql_db/storage/db.sqlite3
-/backend/db/sql_db/storage/db.sqlite3-shm
-/backend/db/sql_db/storage/db.sqlite3-wal
-
-# 向量数据库存储目录（ChromaDB 持久化文件与目录）
+## 数据库文件
+/backend/db/sql_db/storage/
 /backend/db/vector_db/storage/
-# 如果只想忽略单个文件，可取消注释下面这一行
-# /backend/db/vector_db/storage/chroma.sqlite3
+/backend/backend/
 
-## 忽略图库文件（实际图片）
+## 上传文件
+/backend/uploads/
+/backend/search_uploads/
+
+## 图库资源
 /backend/resource/gallery/
 
-## 忽略测试文件
+## 模型权重
+/backend/resource/clip_model/
+
+## 日志文件
+*.log
+
+## 测试文件
 /test.py
-
-# 如有 tests/ 目录，也可一并忽略（按需启用）
-# /tests/
-
-## =====================
-## 下面是通用忽略规则
-## =====================
 
 ## Python 缓存与构建产物
 __pycache__/
-**/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
@@ -34,7 +31,7 @@ __pycache__/
 build/
 dist/
 
-## 虚拟环境与工具目录
+## 虚拟环境
 .venv/
 venv/
 env/
@@ -44,28 +41,26 @@ ENV/
 .mypy_cache/
 .cache/
 
-## 覆盖率与报告
+## 覆盖率
 .coverage
 coverage.xml
 htmlcov/
 
-## 编辑器/IDE 配置
+## 编辑器/IDE
 .vscode/
 .idea/
+.devdbrc
 
 ## 系统文件
 .DS_Store
 Thumbs.db
 
-## 笔记本临时文件
+## 笔记本
 .ipynb_checkpoints/
 
-## 环境变量文件
+## 环境变量
 .env
 .env.*
 
-## 模型权重与大文件（按需调整）
-/backend/resource/clip_model/
-# 如果只想忽略特定扩展，可使用：
-# /backend/resource/clip_model/*.pt
-# /backend/resource/clip_model/*.pth
+## Node
+node_modules/

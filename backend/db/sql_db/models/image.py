@@ -1,51 +1,28 @@
 from tortoise.models import Model
 from tortoise import fields
-from datetime import datetime
 
 
 class Image(Model):
-    #默认启用自增主键
-    id = fields.IntField(
-        pk=True, 
-        description="图片id，主键")
-    upload_time = fields.DatetimeField(
-        default=datetime.now, 
-        description="图片上传时间"
-    )
-    file_path = fields.CharField(max_length=255, 
-                                 description="图片url")
-    file_hash = fields.CharField(
-        max_length=64, 
-        unique=True, 
-        null=True, 
-        description="图片文件hash值,用于去重"
-    )
-    p_hash = fields.CharField(
-        max_length=64,
-        null=True,
-        index=True,
-        description="图片感知hash值,用于相似图片检索以及去重",
-    )
-    #用于汉明距离计算
+    id = fields.IntField(pk=True)
+    filename = fields.CharField(max_length=255, default="")
+    image_url = fields.CharField(max_length=500, default="")
+    thumbnail_url = fields.CharField(max_length=500, null=True)
+    size_bytes = fields.IntField(default=0)
+    size_label = fields.CharField(max_length=20, default="0 KB")
+    created_at = fields.DatetimeField(auto_now_add=True)
+    gallery_id = fields.IntField(null=True)
+    status = fields.CharField(max_length=10, default="active")
+    source = fields.CharField(max_length=10, default="upload")
+    deleted_at = fields.DatetimeField(null=True)
+    # CLIP / hash fields (used by duplicate detection and vector search)
+    file_path = fields.CharField(max_length=500, null=True)
+    file_hash = fields.CharField(max_length=64, null=True)
+    p_hash = fields.CharField(max_length=64, null=True, index=True)
     phash_p1 = fields.CharField(max_length=16, null=True, index=True)
     phash_p2 = fields.CharField(max_length=16, null=True, index=True)
     phash_p3 = fields.CharField(max_length=16, null=True, index=True)
     phash_p4 = fields.CharField(max_length=16, null=True, index=True)
-    description = fields.TextField(
-        null=True, 
-        description="图片描述信息")
-    is_deleted = fields.BooleanField(
-        default=False,
-        description="图片是否被删除,被删除的不会在检索和相册中出现，只会出现在回收站中",
-    )
+    description = fields.TextField(null=True)
 
-    # 多对多关系
-    # gallery = fields.ManyToManyField(
-    #     "models.gallery",
-    #     related_name="images",
-    #     through="gallery_image",
-    #     description="图片所属画廊",
-    # )
-
-    class ImageMeta:
+    class Meta:
         table = "image"

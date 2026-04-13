@@ -55,10 +55,10 @@ class CLIPHandler:
                 self.model = None
                 self.preprocess = None
 
-    def image_extract(self, image_path: str) -> list[float] | None:
+    def image_extract(self, image_input) -> list[float] | None:
         """
         使用CLIP模型提取图像特征向量
-        :param image_path: 图像文件路径
+        :param image_input: 图像文件路径(str)或文件对象(file-like)
         :return: 图像特征向量（torch.Tensor）
         """
         self._ensure_model_loaded()
@@ -66,17 +66,17 @@ class CLIPHandler:
             logger.error("Something wrong in clip init")
             return None
         try:
-            with Image.open(image_path) as img:
+            with Image.open(image_input) as img:
                 image = torch.tensor(self.preprocess(img)).unsqueeze(0).to(self.device)
                 with torch.no_grad():
                     image_features = self.model.encode_image(image)
                     image_features /= image_features.norm(dim=-1, keepdim=True)
             return image_features.cpu().numpy().flatten().tolist()
         except FileNotFoundError:
-            logger.error(f"File not found: {image_path}")
+            logger.error(f"File not found: {image_input}")
             return None
         except Exception as e:
-            logger.error(f"Error extracting vector for {image_path}: {e}")
+            logger.error(f"Error extracting image vector: {e}")
             return None
 
     def text_extract(self, text: str) -> list[float] | None:

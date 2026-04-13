@@ -3,7 +3,7 @@ from loguru import logger
 import os
 
 # 定义日志文件夹
-LOG_DIR = "backend\\app\\logs"
+LOG_DIR = os.path.join(os.path.dirname(__file__))
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 
