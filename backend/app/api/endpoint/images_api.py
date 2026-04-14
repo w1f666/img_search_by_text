@@ -1,3 +1,5 @@
+import io
+import logging
 import os
 import re
 import uuid
@@ -5,12 +7,35 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from PIL import Image as PILImage
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from db.sql_db.models.image import Image
 from db.sql_db.models.gallery import Gallery
 
+logger = logging.getLogger(__name__)
+
 UPLOAD_DIR = Path(__file__).resolve().parents[3] / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+THUMBNAIL_DIR = UPLOAD_DIR / "thumbnails"
+THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
+
+THUMBNAIL_MAX_SIZE = (400, 400)
+THUMBNAIL_QUALITY = 80
+
+
+def _generate_thumbnail(source_path: Path, thumb_name: str) -> str | None:
+    """Generate a thumbnail and return its URL path, or None on failure."""
+    try:
+        with PILImage.open(source_path) as im:
+            im.thumbnail(THUMBNAIL_MAX_SIZE, PILImage.Resampling.LANCZOS)
+            thumb_path = THUMBNAIL_DIR / thumb_name
+            if im.mode in ("RGBA", "P"):
+                im = im.convert("RGB")
+            im.save(thumb_path, "JPEG", quality=THUMBNAIL_QUALITY)
+            return f"/uploads/thumbnails/{thumb_name}"
+    except Exception as e:
+        logger.warning(f"Thumbnail generation failed: {e}")
+        return None
 from app.schemas.image import (
     CreateImageRequest,
     UpdateImageRequest,
@@ -165,10 +190,13 @@ async def upload_image(
             raise HTTPException(status_code=422, detail="Invalid gallery_id")
 
     image_url = f"/uploads/{unique_name}"
+    thumb_name = f"{uuid.uuid4().hex}.jpg"
+    thumbnail_url = _generate_thumbnail(dest, thumb_name) or image_url
+
     img = await Image.create(
         filename=file.filename,
         image_url=image_url,
-        thumbnail_url=image_url,
+        thumbnail_url=thumbnail_url,
         size_bytes=size_bytes,
         size_label=size_label,
         gallery_id=gid,
@@ -183,11 +211,9 @@ async def upload_image(
         if vec:
             collection.upsert(ids=[str(img.id)], embeddings=[vec])
         else:
-            import logging
-            logging.getLogger(__name__).warning(f"CLIP returned None for image {img.id}: {dest}")
+            logger.warning(f"CLIP returned None for image {img.id}: {dest}")
     except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"Vector indexing failed for image {img.id}: {e}")
+        logger.error(f"Vector indexing failed for image {img.id}: {e}")
 
     if gid:
         await _sync_gallery_count(gid)
@@ -224,10 +250,13 @@ async def batch_upload_images(
         dest.write_bytes(content)
 
         image_url = f"/uploads/{unique_name}"
+        thumb_name = f"{uuid.uuid4().hex}.jpg"
+        thumbnail_url = _generate_thumbnail(dest, thumb_name) or image_url
+
         img = await Image.create(
             filename=file.filename,
             image_url=image_url,
-            thumbnail_url=image_url,
+            thumbnail_url=thumbnail_url,
             size_bytes=size_bytes,
             size_label=size_label,
             gallery_id=gid,
@@ -242,11 +271,9 @@ async def batch_upload_images(
             if vec:
                 collection.upsert(ids=[str(img.id)], embeddings=[vec])
             else:
-                import logging
-                logging.getLogger(__name__).warning(f"CLIP returned None for image {img.id}: {dest}")
+                logger.warning(f"CLIP returned None for image {img.id}: {dest}")
         except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Vector indexing failed for image {img.id}: {e}")
+            logger.error(f"Vector indexing failed for image {img.id}: {e}")
 
         results.append(image_to_response(img).model_dump())
 
@@ -466,3 +493,25 @@ async def _sync_gallery_count(gallery_id: int):
     g.image_count = count
     g.cover_image_url = (first_img.thumbnail_url or first_img.image_url) if first_img else None
     await g.save()
+
+
+@router.post("/generate-thumbnails")
+async def generate_thumbnails_for_existing():
+    """Backfill thumbnails for images that don't have a real thumbnail yet."""
+    images = await Image.filter(status="active")
+    generated = 0
+    for img in images:
+        if img.thumbnail_url and img.thumbnail_url != img.image_url:
+            continue  # already has a real thumbnail
+        if not img.image_url:
+            continue
+        source_path = UPLOAD_DIR / os.path.basename(img.image_url)
+        if not source_path.exists():
+            continue
+        thumb_name = f"{uuid.uuid4().hex}.jpg"
+        thumb_url = _generate_thumbnail(source_path, thumb_name)
+        if thumb_url:
+            img.thumbnail_url = thumb_url
+            await img.save()
+            generated += 1
+    return {"generated": generated, "total": len(images)}
