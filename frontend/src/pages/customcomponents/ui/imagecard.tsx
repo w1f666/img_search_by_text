@@ -30,7 +30,7 @@ export function ImageCard({ image, onClick, actionMask, busy = false }: ImageCar
       <div className="relative aspect-square w-full overflow-hidden rounded-[1.2rem] bg-muted ring-1 ring-border/50 transition-shadow duration-300 group-hover:shadow-lg group-hover:shadow-primary/5 group-hover:ring-primary/20">
         {/* 列表图片统一走 LazyImage，这样卡片层不需要重复处理懒加载和骨架。 */}
         <LazyImage
-          src={image.url}
+          src={image.thumbnailUrl ?? image.url}
           alt={image.filename}
           wrapperClassName="h-full w-full"
           className="h-full w-full object-cover transition-[filter] duration-300 group-hover:brightness-105"

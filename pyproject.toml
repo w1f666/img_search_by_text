@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = []
 
 [tool.aerich]
-tortoise_orm = "backend.db.sql_db.config.settings.TORTOISE_ORM"
-location = "backend/db/sql_db/migrations/"
+tortoise_orm = "backend.app.db.sql_db.config.settings.TORTOISE_ORM"
+location = "backend/app/db/sql_db/migrations/"
 src_folder = "./."
 
