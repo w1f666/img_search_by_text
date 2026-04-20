@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LazyImage } from "@/pages/customcomponents/ui/LazyImage";
-import { mediaApi } from "../../lib/media-api";
 import { preloadImageResource } from "@/lib/image-resource";
 import { useImageDetailContextQuery, useSearchImageDetailContextQuery, useMoveImageToTrashMutation, useUpdateImageMutation } from "@/lib/media-query";
 import { PageHeader } from "@/pages/customcomponents/ui/PageHeader";
@@ -32,37 +31,32 @@ export default function ImageDetail() {
   const context = detailQuery.data ?? null;
   const isMutating = updateImage.isPending || moveImageToTrash.isPending;
 
+  // 非搜索场景：声明式预取邻近图片的 API 数据，TanStack 自动缓存。
+  // 搜索场景：数据已在搜索结果数组中，无需额外请求，传 undefined 禁用。
+  const prevImageId = !sessionId ? context?.previousImage?.id : undefined;
+  const nextImageId = !sessionId ? context?.nextImage?.id : undefined;
+  useImageDetailContextQuery(prevImageId, galleryId);
+  useImageDetailContextQuery(nextImageId, galleryId);
+
   useEffect(() => {
     if (!context) {
       return;
     }
 
-    // 首屏展示当前图的同时，提前预热邻近图和相关图，切换详情时更顺滑。
-    preloadImageResource(context.image.url);
-
-    if (!sessionId) {
-      if (context.previousImage) {
-        void mediaApi.prefetchImageDetailContext(context.previousImage.id, galleryId);
-        preloadImageResource(context.previousImage.url);
-      }
-
-      if (context.nextImage) {
-        void mediaApi.prefetchImageDetailContext(context.nextImage.id, galleryId);
-        preloadImageResource(context.nextImage.url);
-      }
-    } else {
+    // 优先加载当前图片，完成后再预热邻近图和相关图，避免带宽争抢。
+    preloadImageResource(context.image.url).then(() => {
       if (context.previousImage) {
         preloadImageResource(context.previousImage.url);
       }
       if (context.nextImage) {
         preloadImageResource(context.nextImage.url);
       }
-    }
 
-    context.relatedImages.forEach((entry: ImageItem) => {
-      preloadImageResource(entry.thumbnailUrl ?? entry.url);
+      context.relatedImages.forEach((entry: ImageItem) => {
+        preloadImageResource(entry.thumbnailUrl ?? entry.url);
+      });
     });
-  }, [context, galleryId, sessionId]);
+  }, [context]);
 
   const image = context?.image ?? null;
   const backPath = sessionId ? `/search/${sessionId}` : galleryId ? `/gallery/${galleryId}` : "/all-images";

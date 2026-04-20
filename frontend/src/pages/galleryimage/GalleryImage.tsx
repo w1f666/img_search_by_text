@@ -40,6 +40,8 @@ export default function GalleryImage() {
   const batchUpload = useBatchUploadImagesMutation();
   const updateImageGallery = useUpdateImageMutation();
   const moveImageToTrash = useMoveImageToTrashMutation();
+  const uploadAbortRef = useRef<AbortController | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const gallery = useMemo(
     () => galleryList.find((item: GalleryItem) => item.id === galleryId) ?? null,
@@ -76,13 +78,29 @@ export default function GalleryImage() {
 
   const handleUpload = async () => {
     if (!galleryId || selectedFiles.length === 0) return;
-    await batchUpload.mutateAsync({
-      files: selectedFiles.map((f) => f.file),
-      galleryId,
-    });
-    setDialogOpen(false);
-    resetDialog();
-    setPage(1);
+    const abortController = new AbortController();
+    uploadAbortRef.current = abortController;
+    setUploadError(null);
+    try {
+      await batchUpload.mutateAsync({
+        files: selectedFiles.map((f) => f.file),
+        galleryId,
+        signal: abortController.signal,
+      });
+      setDialogOpen(false);
+      resetDialog();
+      setPage(1);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "上传失败";
+      setUploadError(message);
+    } finally {
+      uploadAbortRef.current = null;
+    }
+  };
+
+  const handleCancelUpload = () => {
+    uploadAbortRef.current?.abort();
+    uploadAbortRef.current = null;
   };
 
   if (!isGalleryLoading && !gallery) {
@@ -251,9 +269,18 @@ export default function GalleryImage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetDialog(); }}>
-              取消
-            </Button>
+            {uploadError && (
+              <p className="mr-auto text-sm text-destructive">{uploadError}</p>
+            )}
+            {batchUpload.isPending ? (
+              <Button variant="outline" onClick={handleCancelUpload}>
+                取消上传
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => { setDialogOpen(false); resetDialog(); setUploadError(null); }}>
+                取消
+              </Button>
+            )}
             <Button disabled={selectedFiles.length === 0 || batchUpload.isPending} onClick={() => void handleUpload()}>
               {batchUpload.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
               上传{selectedFiles.length > 0 ? ` (${selectedFiles.length})` : ""}

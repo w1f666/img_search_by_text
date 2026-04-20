@@ -5,7 +5,7 @@ import os
 from typing_extensions import override
 from app.logs.config import logger
 
-MODEL_PATH = os.path.join(os.getcwd(),"backend","resource","clip_model")
+MODEL_PATH = os.path.join(os.getcwd(),"resource","clip_model")
 os.makedirs(MODEL_PATH,exist_ok=True)
 
 class CLIPHandler:

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { markImageResourceCached, isImageResourceCached } from "@/lib/image-resource";
+import { markImageResourceCached, isImageResourceCached, evictImageResourceCache } from "@/lib/image-resource";
 import { cn } from "@/lib/utils";
 
 interface LazyImageProps extends Omit<ComponentPropsWithoutRef<"img">, "src"> {
@@ -79,6 +79,7 @@ function LazyImageInner({
 	};
 
 	const handleError: NonNullable<ComponentPropsWithoutRef<"img">["onError"]> = (event) => {
+		evictImageResourceCache(src);
 		setIsLoaded(true);
 		onError?.(event);
 	};

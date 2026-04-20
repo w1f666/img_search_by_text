@@ -1,5 +1,6 @@
 // 这里缓存的是“这个 URL 对应的图片资源是否已经被浏览器成功加载过”。
-const MAX_CACHE_SIZE = 500;
+// 保守估计浏览器内存缓存的活跃窗口（当前页 + 上一页缩略图 + 近期详情原图）。
+const MAX_CACHE_SIZE = 50;
 const loadedImageUrls = new Map<string, true>();
 
 const touchCache = (url: string) => {
@@ -25,6 +26,12 @@ export const isImageResourceCached = (url?: string | null) => {
 export const markImageResourceCached = (url?: string | null) => {
   if (url) {
     touchCache(url);
+  }
+};
+
+export const evictImageResourceCache = (url?: string | null) => {
+  if (url) {
+    loadedImageUrls.delete(url);
   }
 };
 

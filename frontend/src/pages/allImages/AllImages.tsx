@@ -54,6 +54,8 @@ export default function AllImages() {
   const autoClassify = useAutoClassifyMutation();
   const [classifyResultOpen, setClassifyResultOpen] = useState(false);
   const [classifyResult, setClassifyResult] = useState<AutoClassifyResponse | null>(null);
+  const uploadAbortRef = useRef<AbortController | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const images = imagesQuery.data?.items ?? [];
   const pagination = imagesQuery.data?.meta ?? null;
@@ -93,13 +95,29 @@ export default function AllImages() {
   const handleUpload = async () => {
     if (selectedFiles.length === 0) return;
     const galleryId = selectedGalleryId === "none" ? null : selectedGalleryId;
-    await batchUpload.mutateAsync({
-      files: selectedFiles.map((f) => f.file),
-      galleryId,
-    });
-    setDialogOpen(false);
-    resetDialog();
-    setPage(1);
+    const abortController = new AbortController();
+    uploadAbortRef.current = abortController;
+    setUploadError(null);
+    try {
+      await batchUpload.mutateAsync({
+        files: selectedFiles.map((f) => f.file),
+        galleryId,
+        signal: abortController.signal,
+      });
+      setDialogOpen(false);
+      resetDialog();
+      setPage(1);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "上传失败";
+      setUploadError(message);
+    } finally {
+      uploadAbortRef.current = null;
+    }
+  };
+
+  const handleCancelUpload = () => {
+    uploadAbortRef.current?.abort();
+    uploadAbortRef.current = null;
   };
 
   const handleDelete = async (imageId: string) => {
@@ -198,7 +216,7 @@ export default function AllImages() {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetDialog(); }}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) { resetDialog(); setUploadError(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>上传图片</DialogTitle>
@@ -272,9 +290,18 @@ export default function AllImages() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetDialog(); }}>
-              取消
-            </Button>
+            {uploadError && (
+              <p className="mr-auto text-sm text-destructive">{uploadError}</p>
+            )}
+            {batchUpload.isPending ? (
+              <Button variant="outline" onClick={handleCancelUpload}>
+                取消上传
+              </Button>
+            ) : (
+              <Button variant="outline" onClick={() => { setDialogOpen(false); resetDialog(); setUploadError(null); }}>
+                取消
+              </Button>
+            )}
             <Button disabled={selectedFiles.length === 0 || batchUpload.isPending} onClick={() => void handleUpload()}>
               {batchUpload.isPending ? <LoaderCircle className="size-4 animate-spin" /> : null}
               上传{selectedFiles.length > 0 ? ` (${selectedFiles.length})` : ""}

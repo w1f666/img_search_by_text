@@ -1,6 +1,6 @@
 import os
 
-DB_FOLDER = "backend/db/sql_db/storage"
+DB_FOLDER = "db/sql_db/storage"
 if not os.path.exists(DB_FOLDER):
     os.makedirs(DB_FOLDER)
 

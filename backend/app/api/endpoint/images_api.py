@@ -9,6 +9,7 @@ from typing import Optional
 
 from PIL import Image as PILImage
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
+from tortoise.transactions import in_transaction
 from db.sql_db.models.image import Image
 from db.sql_db.models.gallery import Gallery
 
@@ -180,7 +181,6 @@ async def upload_image(
 
     unique_name = f"{uuid.uuid4().hex}{ext}"
     dest = UPLOAD_DIR / unique_name
-    dest.write_bytes(content)
 
     gid = None
     if gallery_id and gallery_id not in ("null", ""):
@@ -191,34 +191,51 @@ async def upload_image(
 
     image_url = f"/uploads/{unique_name}"
     thumb_name = f"{uuid.uuid4().hex}.jpg"
-    thumbnail_url = _generate_thumbnail(dest, thumb_name) or image_url
+    written_files: list[Path] = []
 
-    img = await Image.create(
-        filename=file.filename,
-        image_url=image_url,
-        thumbnail_url=thumbnail_url,
-        size_bytes=size_bytes,
-        size_label=size_label,
-        gallery_id=gid,
-        status="active",
-        source="upload",
-    )
-
-    # Index into vector DB for search
     try:
-        clip = CLIPHandler()
-        vec = clip.image_extract(str(dest))
-        if vec:
-            collection.upsert(ids=[str(img.id)], embeddings=[vec])
-        else:
-            logger.warning(f"CLIP returned None for image {img.id}: {dest}")
-    except Exception as e:
-        logger.error(f"Vector indexing failed for image {img.id}: {e}")
+        dest.write_bytes(content)
+        written_files.append(dest)
 
-    if gid:
-        await _sync_gallery_count(gid)
+        thumbnail_url = _generate_thumbnail(dest, thumb_name) or image_url
+        if thumbnail_url != image_url:
+            written_files.append(THUMBNAIL_DIR / thumb_name)
 
-    return image_to_response(img).model_dump()
+        async with in_transaction():
+            img = await Image.create(
+                filename=file.filename,
+                image_url=image_url,
+                thumbnail_url=thumbnail_url,
+                size_bytes=size_bytes,
+                size_label=size_label,
+                gallery_id=gid,
+                status="active",
+                source="upload",
+            )
+
+        # Index into vector DB for search
+        try:
+            clip = CLIPHandler()
+            vec = clip.image_extract(str(dest))
+            if vec:
+                collection.upsert(ids=[str(img.id)], embeddings=[vec])
+            else:
+                logger.warning(f"CLIP returned None for image {img.id}: {dest}")
+        except Exception as e:
+            logger.error(f"Vector indexing failed for image {img.id}: {e}")
+
+        if gid:
+            await _sync_gallery_count(gid)
+
+        return image_to_response(img).model_dump()
+    except Exception:
+        # Cleanup written files on failure
+        for f in written_files:
+            try:
+                f.unlink(missing_ok=True)
+            except OSError:
+                pass
+        raise
 
 
 @router.post("/batch-upload")
@@ -234,53 +251,77 @@ async def batch_upload_images(
             raise HTTPException(status_code=422, detail="Invalid gallery_id")
 
     results = []
-    for file in files:
-        if not file.filename:
-            continue
-        ext = Path(file.filename).suffix.lower()
-        if ext not in ALLOWED_EXTENSIONS:
-            continue
+    all_written_files: list[Path] = []
 
-        content = await file.read()
-        size_bytes = len(content)
-        size_label = _format_size_label(size_bytes)
+    try:
+        for file in files:
+            if not file.filename:
+                continue
+            ext = Path(file.filename).suffix.lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                continue
 
-        unique_name = f"{uuid.uuid4().hex}{ext}"
-        dest = UPLOAD_DIR / unique_name
-        dest.write_bytes(content)
+            content = await file.read()
+            size_bytes = len(content)
+            size_label = _format_size_label(size_bytes)
 
-        image_url = f"/uploads/{unique_name}"
-        thumb_name = f"{uuid.uuid4().hex}.jpg"
-        thumbnail_url = _generate_thumbnail(dest, thumb_name) or image_url
+            unique_name = f"{uuid.uuid4().hex}{ext}"
+            dest = UPLOAD_DIR / unique_name
+            dest.write_bytes(content)
+            all_written_files.append(dest)
 
-        img = await Image.create(
-            filename=file.filename,
-            image_url=image_url,
-            thumbnail_url=thumbnail_url,
-            size_bytes=size_bytes,
-            size_label=size_label,
-            gallery_id=gid,
-            status="active",
-            source="upload",
-        )
+            image_url = f"/uploads/{unique_name}"
+            thumb_name = f"{uuid.uuid4().hex}.jpg"
+            thumbnail_url = _generate_thumbnail(dest, thumb_name) or image_url
+            if thumbnail_url != image_url:
+                all_written_files.append(THUMBNAIL_DIR / thumb_name)
 
-        # Index into vector DB for search
-        try:
-            clip = CLIPHandler()
-            vec = clip.image_extract(str(dest))
-            if vec:
-                collection.upsert(ids=[str(img.id)], embeddings=[vec])
-            else:
-                logger.warning(f"CLIP returned None for image {img.id}: {dest}")
-        except Exception as e:
-            logger.error(f"Vector indexing failed for image {img.id}: {e}")
+            async with in_transaction():
+                img = await Image.create(
+                    filename=file.filename,
+                    image_url=image_url,
+                    thumbnail_url=thumbnail_url,
+                    size_bytes=size_bytes,
+                    size_label=size_label,
+                    gallery_id=gid,
+                    status="active",
+                    source="upload",
+                )
 
-        results.append(image_to_response(img).model_dump())
+            # Index into vector DB for search
+            try:
+                clip = CLIPHandler()
+                vec = clip.image_extract(str(dest))
+                if vec:
+                    collection.upsert(ids=[str(img.id)], embeddings=[vec])
+                else:
+                    logger.warning(f"CLIP returned None for image {img.id}: {dest}")
+            except Exception as e:
+                logger.error(f"Vector indexing failed for image {img.id}: {e}")
 
-    if gid:
-        await _sync_gallery_count(gid)
+            results.append(image_to_response(img).model_dump())
 
-    return {"items": results, "uploaded_count": len(results)}
+        if gid:
+            await _sync_gallery_count(gid)
+
+        return {"items": results, "uploaded_count": len(results)}
+    except Exception:
+        # Cleanup all written files when batch fails
+        for f in all_written_files:
+            try:
+                f.unlink(missing_ok=True)
+            except OSError:
+                pass
+        # Cleanup any DB records that were already created
+        for result in results:
+            try:
+                img_record = await Image.get_or_none(id=int(result["id"]))
+                if img_record:
+                    await img_record.delete()
+                collection.delete(ids=[result["id"]])
+            except Exception:
+                pass
+        raise
 
 
 @router.patch("/{image_id}")

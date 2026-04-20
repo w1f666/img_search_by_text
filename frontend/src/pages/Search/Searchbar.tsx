@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LazyImage } from "@/pages/customcomponents/ui/LazyImage";
 import { useHistoryListQuery, useSearchSessionResultsQuery, useSearchTopKMutation } from "@/lib/media-query";
-import type { HistoryRecord, ImageItem, SearchQuery, SearchStrategy } from "@/types/media";
+import { preloadImageResource } from "@/lib/image-resource";
+import type { HistoryRecord, HistoryTurn, ImageItem, SearchQuery, SearchStrategy } from "@/types/media";
 import { FancySelect } from "@/pages/customcomponents/ui/FancySelect";
 import { ImageGrid } from "@/pages/customcomponents/ui/ImageGrid";
 import { ImageCard } from "@/pages/customcomponents/ui/imagecard";
@@ -75,6 +76,15 @@ export default function Searchbar() {
     useEffect(() => {
         setPreviewIndex(0);
     }, [sessionId]);
+
+    // 预览焦点图切换时，预加载前后图片文件，使左右切换更顺滑。
+    useEffect(() => {
+        if (!hasResults) return;
+        const prev = results[previewIndex - 1];
+        const next = results[previewIndex + 1];
+        if (prev) preloadImageResource(prev.url);
+        if (next) preloadImageResource(next.url);
+    }, [previewIndex, results, hasResults]);
 
     useEffect(() => {
         return () => {
@@ -325,7 +335,7 @@ export default function Searchbar() {
                                             搜索轮次（{turns.length}轮）
                                         </div>
                                         <div className="space-y-3 overflow-y-auto max-h-[50vh] rounded-2xl border border-border/60 bg-background/60 p-4 backdrop-blur">
-                                            {turns.map((turn: HistoryRecord["turns"][number], index: number) => {
+                                            {turns.map((turn: HistoryTurn, index: number) => {
                                                 const [query, matchedImage] = turn;
                                                 const label = getQueryLabel(query);
                                                 const queryImgUrl = getQueryImageUrl(query);

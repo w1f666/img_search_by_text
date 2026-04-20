@@ -1,4 +1,4 @@
-import { buildRequestParams, request } from "@/lib/request";
+import { buildRequestParams, request, UPLOAD_TIMEOUT } from "@/lib/request";
 import type {
   AutoClassifyPayload,
   AutoClassifyResponse,
@@ -279,7 +279,7 @@ export const mediaApi = {
     };
   },
 
-  async batchUploadImages(files: File[], galleryId?: string | null) {
+  async batchUploadImages(files: File[], galleryId?: string | null, signal?: AbortSignal) {
     const formData = new FormData();
     for (const file of files) {
       formData.append("files", file);
@@ -292,7 +292,8 @@ export const mediaApi = {
       url: "/api/images/batch-upload",
       method: "POST",
       data: formData,
-
+      timeout: UPLOAD_TIMEOUT,
+      signal,
     });
 
     return {

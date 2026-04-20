@@ -4,6 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useMemo } from "react";
 import { mediaApi } from "./media-api";
 import type {
   AutoClassifyPayload,
@@ -96,6 +97,7 @@ export const useImageDetailContextQuery = (imageId?: string, galleryId?: string)
     queryKey: mediaQueryKeys.images.detail(imageId ?? "missing", galleryId),
     queryFn: () => mediaApi.getImageDetailContext(imageId!, galleryId),
     enabled: Boolean(imageId),
+    staleTime: 5 * 60_000,
   });
 
 export const useSearchTopKMutation = () => {
@@ -118,14 +120,30 @@ export const useSearchSessionResultsQuery = (sessionId?: string) =>
     queryKey: mediaQueryKeys.search.results(sessionId ?? ""),
     queryFn: () => mediaApi.getSearchSessionResults(sessionId!),
     enabled: Boolean(sessionId),
+    staleTime: Infinity,
   });
 
-export const useSearchImageDetailContextQuery = (sessionId?: string, imageId?: string) =>
-  useQuery({
-    queryKey: mediaQueryKeys.search.detail(sessionId ?? "", imageId ?? ""),
-    queryFn: () => mediaApi.getSearchImageDetailContext(sessionId!, imageId!),
-    enabled: Boolean(sessionId) && Boolean(imageId),
-  });
+export const useSearchImageDetailContextQuery = (sessionId?: string, imageId?: string) => {
+  const resultsQuery = useSearchSessionResultsQuery(sessionId);
+  const results = resultsQuery.data;
+
+  const context = useMemo(() => {
+    if (!results || !imageId) return null;
+    const index = results.findIndex((r) => r.id === imageId);
+    if (index === -1) return null;
+    return {
+      image: results[index],
+      previousImage: index > 0 ? results[index - 1] : null,
+      nextImage: index < results.length - 1 ? results[index + 1] : null,
+      relatedImages: results.filter((_, i) => i !== index).slice(0, 8),
+    };
+  }, [results, imageId]);
+
+  return {
+    ...resultsQuery,
+    data: context,
+  };
+};
 
 export const useCreateGalleryMutation = () => {
   const queryClient = useQueryClient();
@@ -165,9 +183,9 @@ export const useBatchUploadImagesMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ files, galleryId }: { files: File[]; galleryId?: string | null }) =>
-      mediaApi.batchUploadImages(files, galleryId),
-    onSuccess: async () => {
+    mutationFn: ({ files, galleryId, signal }: { files: File[]; galleryId?: string | null; signal?: AbortSignal }) =>
+      mediaApi.batchUploadImages(files, galleryId, signal),
+    onSettled: async () => {
       await invalidateImageQueries(queryClient);
     },
   });
