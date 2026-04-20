@@ -35,8 +35,12 @@ export const evictImageResourceCache = (url?: string | null) => {
   }
 };
 
-export const preloadImageResource = (url?: string | null) => {
+export const preloadImageResource = (url?: string | null, signal?: AbortSignal) => {
   if (!url || typeof window === "undefined") {
+    return Promise.resolve(false);
+  }
+
+  if (signal?.aborted) {
     return Promise.resolve(false);
   }
 
@@ -56,6 +60,14 @@ export const preloadImageResource = (url?: string | null) => {
     image.onerror = () => {
       resolve(false);
     };
+
+    if (signal) {
+      signal.addEventListener("abort", () => {
+        image.src = "";
+        resolve(false);
+      }, { once: true });
+    }
+
     image.src = url;
 
     if (image.complete && image.naturalWidth > 0) {

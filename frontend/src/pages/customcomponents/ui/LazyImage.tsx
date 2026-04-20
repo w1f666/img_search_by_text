@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { markImageResourceCached, isImageResourceCached, evictImageResourceCache } from "@/lib/image-resource";
 import { cn } from "@/lib/utils";
@@ -41,8 +41,29 @@ function LazyImageInner({
 }: LazyImageProps) {
 	const wrapperRef = useRef<HTMLDivElement | null>(null);
 	const imageRef = useRef<HTMLImageElement | null>(null);
+	const isMountedRef = useRef(false);
 	const [isVisible, setIsVisible] = useState(() => eager || !src);
 	const [isLoaded, setIsLoaded] = useState(() => isImageResourceCached(src));
+
+	// 真实卸载时取消未完成的图片下载。
+	// StrictMode 在开发环境会同步执行 cleanup → re-mount effects，
+	// 用 queueMicrotask 延迟执行：微任务在同步代码之后运行，
+	// 如果是 StrictMode 模拟卸载，re-mount 已把 isMountedRef 恢复为 true，跳过；
+	// 如果是真实卸载，isMountedRef 仍为 false，执行 img.src="" 取消下载。
+	useEffect(() => {
+		isMountedRef.current = true;
+		return () => {
+			isMountedRef.current = false;
+			const img = imageRef.current;
+			if (img && !img.complete) {
+				queueMicrotask(() => {
+					if (!isMountedRef.current) {
+						img.src = "";
+					}
+				});
+			}
+		};
+	}, []);
 
 	useEffect(() => {
 		if (!src || eager || isVisible) {
@@ -85,18 +106,20 @@ function LazyImageInner({
 	};
 
 	const shouldRenderImage = Boolean(src && (eager || isVisible));
-	const attachImageRef = (node: HTMLImageElement | null) => {
+	const attachImageRef = useCallback((node: HTMLImageElement | null) => {
+		// 只处理挂载，不处理卸载。卸载时 node 为 null，跳过，
+		// 保留 imageRef.current 供 useEffect cleanup 使用。
+		if (!node) return;
+
 		imageRef.current = node;
 
-		if (!src || !node) {
-			return;
-		}
-
-		if (node.complete && node.naturalWidth > 0) {
+		if (src && node.complete && node.naturalWidth > 0) {
 			markImageResourceCached(src);
 			setIsLoaded(true);
 		}
-	};
+	// src 在同一个 LazyImageInner 实例内不会变化（外层通过 key 保证），
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [src]);
 
 	return (
 		<div ref={wrapperRef} className={cn("relative", wrapperClassName)}>

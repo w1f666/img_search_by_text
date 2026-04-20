@@ -43,19 +43,28 @@ export default function ImageDetail() {
       return;
     }
 
+    const controller = new AbortController();
+    const { signal } = controller;
+
     // 优先加载当前图片，完成后再预热邻近图和相关图，避免带宽争抢。
-    preloadImageResource(context.image.url).then(() => {
+    preloadImageResource(context.image.url, signal).then(() => {
+      if (signal.aborted) return;
+
       if (context.previousImage) {
-        preloadImageResource(context.previousImage.url);
+        preloadImageResource(context.previousImage.url, signal);
       }
       if (context.nextImage) {
-        preloadImageResource(context.nextImage.url);
+        preloadImageResource(context.nextImage.url, signal);
       }
 
       context.relatedImages.forEach((entry: ImageItem) => {
-        preloadImageResource(entry.thumbnailUrl ?? entry.url);
+        preloadImageResource(entry.thumbnailUrl ?? entry.url, signal);
       });
     });
+
+    return () => {
+      controller.abort();
+    };
   }, [context]);
 
   const image = context?.image ?? null;

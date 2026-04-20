@@ -77,13 +77,24 @@ export default function Searchbar() {
         setPreviewIndex(0);
     }, [sessionId]);
 
-    // 预览焦点图切换时，预加载前后图片文件，使左右切换更顺滑。
+    // 优先加载当前焦点图，完成后再预热前后图片，避免带宽争抢。
     useEffect(() => {
         if (!hasResults) return;
-        const prev = results[previewIndex - 1];
-        const next = results[previewIndex + 1];
-        if (prev) preloadImageResource(prev.url);
-        if (next) preloadImageResource(next.url);
+        const current = results[previewIndex];
+        if (!current) return;
+
+        const controller = new AbortController();
+        const { signal } = controller;
+
+        preloadImageResource(current.url, signal).then(() => {
+            if (signal.aborted) return;
+            const prev = results[previewIndex - 1];
+            const next = results[previewIndex + 1];
+            if (prev) preloadImageResource(prev.url, signal);
+            if (next) preloadImageResource(next.url, signal);
+        });
+
+        return () => { controller.abort(); };
     }, [previewIndex, results, hasResults]);
 
     useEffect(() => {
